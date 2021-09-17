@@ -1,0 +1,1 @@
+# EasyEdge Accelerometer Example
