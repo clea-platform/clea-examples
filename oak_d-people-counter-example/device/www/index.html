@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
         integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
         crossorigin="anonymous">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.1/font/bootstrap-icons.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
         integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
@@ -20,41 +22,53 @@
     <title>Clea People Counter</title>
 
     <style>
-        #img-div {
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-
-            /* Preserve aspet ratio */
-            min-width: 100%;
-            min-height: 100%;
-        }
-
-
-        .back {
-            /* Set rules to fill background */
-            min-height: 100%;
-            min-width: 1024px;
-
-            /* Set up proportionate scaling */
-            width: 100%;
-            height: auto;
-
-            /* Set up positioning */
-            position: fixed;
-            top: 0;
-            left: 0;
-        }
     </style>
 </head>
 
 
 <body>
-<div class="container">
-    <div class="row">
-        <div id="img-div">
-            <img id="img-el" alt="Camera stream"/>'
+    <header class="navbar navbar-dark sticky-top bg-light flex-md-nowrap p-0 shadow">
+        <div class="col-sm-12 text-center">
+            <a class="navbar-brand" href="https://www.seco.com" >
+                <img src="https://www.vendingnews.it/wp-content/uploads/2021/02/SECO-LOGO-RID-300x185.png" class="img-responsive"
+                        height="40 vh"/>
+            </a>
         </div>
+    </header>
+
+    
+    <div id="main-container" class="container-fluid">
+        <div class="row" id="img-div">
+
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                        
+                        <span>
+                            <i class="bi bi-people-fill"></i>
+                            Detected People : 512
+                        </span>
+                    </h6>
+                    
+                    <ul class="nav flex-column pt-4">
+                        <li class="nav-item pt-2">
+                            Desk area : 2
+                        </li>
+                        <li class="nav-item pt-2">
+                            Coffee area : 2
+                        </li>
+                        <li class="nav-item pt-2">
+                            Blackboard area : 2
+                        </li>
+                        <li class="nav-item pt-2">
+                            Window area : 2
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+          
+            <img id="img-el" class="d-inline-flex col img-responsive" alt="Camera stream"/>
     </div>
 </div>
 </body>
