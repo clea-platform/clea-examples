@@ -211,8 +211,12 @@ class Main:
         #self.flask.logger.setLevel(logging.ERROR)
         logging.getLogger('werkzeug').setLevel(logging.CRITICAL)
 
+        @self.flask.route ("/")
+        def index ():
+            return send_from_directory ("www", "index.html")
+        
         @self.flask.route ("/<path:path>")
-        def index (path):
+        def path_rule (path):
             return send_from_directory ("www", path)
 
         self.nn_fps = 0
@@ -502,9 +506,9 @@ class Main:
                 got_frame   = True
     
             if got_frame and curr_timestamp - last_sent_timestamp > send_timeout_ms :
-                aspect_ratio    = last_frame.shape[1] / last_frame.shape[0]
-                new_size        = (int(args.width),  int(args.width / aspect_ratio))
-                resized_frame   = cv2.resize(last_frame, new_size)
+                #aspect_ratio    = last_frame.shape[1] / last_frame.shape[0]
+                #new_size        = (int(args.width),  int(args.width / aspect_ratio))
+                #resized_frame   = cv2.resize(last_frame, new_size)
 
                 retval, buffer  = cv2.imencode('.jpg', last_frame)
                 b64_frame       = base64.b64encode (buffer).decode ('utf-8')
