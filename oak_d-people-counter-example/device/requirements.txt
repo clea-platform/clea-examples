@@ -7,3 +7,4 @@ paho-mqtt==1.6.1
 cryptography==35.0.0
 bson==0.5.10
 flask==2.0.2
+flask-socketio==5.1.1

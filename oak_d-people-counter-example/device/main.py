@@ -9,10 +9,14 @@ import json
 import configparser
 import cv2
 import depthai as dai
+import base64
+import logging
 import numpy as np
 from datetime import datetime
 from pathlib import Path
 from astarte.astarte import device
+from flask import Flask, send_from_directory
+from flask_socketio import SocketIO
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-vid', '--video', type=str, help="Path to video file to be used for inference")
@@ -144,7 +148,7 @@ class Main:
 
         # Creating queues
         self.frame_queue            = queue.Queue()
-        self.visualization_queue    = queue.Queue(maxsize=4)
+        self.visualization_queue    = queue.Queue()
         self.clea_if_queue          = queue.Queue ()
         
         # Creating astarte_device object
@@ -198,6 +202,18 @@ class Main:
             ]
         }
         self.astarte_device.add_interface (self.interface_descriptor)
+
+        # Creating Flask webserver
+        self.flask          = Flask(__name__)
+        self.socket_io      = SocketIO(self.flask)
+        self.last_b64_frame = None
+        self.last_b64_mutex = threading.Lock ()
+        #self.flask.logger.setLevel(logging.ERROR)
+        logging.getLogger('werkzeug').setLevel(logging.CRITICAL)
+
+        @self.flask.route ("/<path:path>")
+        def index (path):
+            return send_from_directory ("www", path)
 
         self.nn_fps = 0
 
@@ -369,8 +385,8 @@ class Main:
                 for frame in frames:
                     cv2.putText(frame, 'People count: '+str(len(detected_people)), (5,40), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255,0,0), 2)
 
-                    if self.visualization_queue.full():
-                        self.visualization_queue.get_nowait()
+                    #if self.visualization_queue.full():
+                    #    self.visualization_queue.get_nowait()
                     self.visualization_queue.put(frame)
             
 
@@ -398,9 +414,12 @@ class Main:
             # if camera - receive frames from camera
             if camera:
                 try:
+                    # TODO Handle disconnection exception
                     frame = self.device.getOutputQueue('cam_out').get()
                     self.frame_queue.put(frame)
                 except RuntimeError:
+                    #pipeline        = create_pipeline()
+                    #self.device = dai.Device(pipeline)
                     continue
             
             # else if video - send frames down to NN
@@ -437,47 +456,6 @@ class Main:
 
 
 
-    def visualization_task(self):
-        
-        first       = True
-        #filename    = "/home/udoo/"+str(int(datetime.timestamp(datetime.now())))+".avi"
-        #result      = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc('M','J','P','G'), 20.0, (1125, 2000))
-
-        while self.is_running():
-
-            t1 = time.time()
-
-            # Show frame if available
-            if first or not self.visualization_queue.empty():
-                frame           = self.visualization_queue.get()
-                aspect_ratio    = frame.shape[1] / frame.shape[0]
-                new_size        = (int(args.width),  int(args.width / aspect_ratio))
-                resized_frame   = cv2.resize(frame, new_size)
-                
-                #result.write (frame)
-                cv2.imshow("frame", resized_frame)
-                first = False
-
-            # sleep if required
-            to_sleep_ms = ((1.0 / self.FRAMERATE) - (time.time() - t1)) * 1000
-            key = None
-            if to_sleep_ms >= 1:
-                key = cv2.waitKey(int(to_sleep_ms)) 
-            else:
-                key = cv2.waitKey(1)
-            # Exit
-            if key == ord('q'):
-                self.running = False
-                self.astarte_loop.stop ()
-                break
-        
-        #print ("Saving video to {}".format (filename))
-        #result.release ()
-        cv2.destroyAllWindows()
-
-
-
-
     def clea_if_task (self):
         while self.is_running():
             detected_people = None
@@ -497,9 +475,8 @@ class Main:
                     payload['people'].append (json.dumps(p))
                 payload['people_count'] = len (detected_people)
 
-            print (payload)
+            #print(payload)
 
-            # TODO Sending data to clea
             if not self.astarte_device.is_connected() :
                 print ("Clea connection absent! Cannot publish data :(")
             else :
@@ -511,6 +488,32 @@ class Main:
 
 
 
+    def image_emitter_task (self) :
+        delay_ms            = 64
+        send_timeout_ms     = 128
+        last_sent_timestamp = int(time.time_ns() / 1000000)
+
+        while (self.is_running()) :
+            curr_timestamp  = int(time.time_ns() / 1000000)
+            got_frame   = False
+            last_frame  = None
+            while not self.visualization_queue.empty () :
+                last_frame  = self.visualization_queue.get()
+                got_frame   = True
+    
+            if got_frame and curr_timestamp - last_sent_timestamp > send_timeout_ms :
+                aspect_ratio    = last_frame.shape[1] / last_frame.shape[0]
+                new_size        = (int(args.width),  int(args.width / aspect_ratio))
+                resized_frame   = cv2.resize(last_frame, new_size)
+
+                retval, buffer  = cv2.imencode('.jpg', last_frame)
+                b64_frame       = base64.b64encode (buffer).decode ('utf-8')
+                self.socket_io.emit ("new_data", b64_frame, broadcast=True)
+                last_sent_timestamp = int(time.time_ns() / 1000000)
+    
+    
+    
+    
     def astarte_conection_cb (self, d) :
         print ('\n================\nDevice connected\n================\n\n')
         self.run()
@@ -547,24 +550,32 @@ class Main:
         try :
             self.device = dai.Device(pipeline)
             threads = [
-                threading.Thread(target=self.input_task),
-                threading.Thread(target=self.inference_task),
-                threading.Thread(target=self.clea_if_task)
+                threading.Thread (target=self.input_task),
+                threading.Thread (target=self.inference_task),
+                threading.Thread (target=self.clea_if_task),
+                threading.Thread (target=self.image_emitter_task)
             ]
             for t in threads:
                 t.start()
+                time.sleep (0.5)
 
-            # Visualization task should run in 'main' thread
-            self.visualization_task()
+            # Running flask and socketIO
+            self.socket_io.run (self.flask, host= '0.0.0.0')
+
+            self.running = False
+            self.astarte_loop.stop()
         except BaseException as e:
             print ("\n\nCatched this exception during setup: {}".format (e))
             exit ()
 
         for thread in threads:
             thread.join()
+            
         # cleanup
         if not camera:
             self.cap.release()
+        
+        print ("Bye bye!\n\n")
 
 
 # ==================================================
@@ -574,12 +585,6 @@ class Main:
 
 # Create the application
 app = Main()
-
-# Register a graceful CTRL+C shutdown
-def signal_handler(sig, frame):
-    app.running = False
-    app.astarte_loop.stop()
-signal.signal(signal.SIGINT, signal_handler)
 
 
 try :
