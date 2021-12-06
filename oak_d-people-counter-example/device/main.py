@@ -391,7 +391,8 @@ class Main:
 
                     #if self.visualization_queue.full():
                     #    self.visualization_queue.get_nowait()
-                    self.visualization_queue.put(frame)
+                    payload = {"f":frame, "dp":detected_people}
+                    self.visualization_queue.put(payload)
             
 
                 # Move current to prev
@@ -493,26 +494,26 @@ class Main:
 
 
     def image_emitter_task (self) :
-        delay_ms            = 64
-        send_timeout_ms     = 128
+        send_timeout_ms     = 64
         last_sent_timestamp = int(time.time_ns() / 1000000)
 
         while (self.is_running()) :
             curr_timestamp  = int(time.time_ns() / 1000000)
-            got_frame   = False
-            last_frame  = None
+            got_data    = False
+            last_data   = None
             while not self.visualization_queue.empty () :
-                last_frame  = self.visualization_queue.get()
-                got_frame   = True
+                last_data   = self.visualization_queue.get()
+                got_data    = True
     
-            if got_frame and curr_timestamp - last_sent_timestamp > send_timeout_ms :
+            if got_data and curr_timestamp - last_sent_timestamp > send_timeout_ms :
                 #aspect_ratio    = last_frame.shape[1] / last_frame.shape[0]
                 #new_size        = (int(args.width),  int(args.width / aspect_ratio))
                 #resized_frame   = cv2.resize(last_frame, new_size)
 
-                retval, buffer  = cv2.imencode('.jpg', last_frame)
-                b64_frame       = base64.b64encode (buffer).decode ('utf-8')
-                self.socket_io.emit ("new_data", b64_frame, broadcast=True)
+                retval, buffer  = cv2.imencode('.jpg', last_data["f"])
+                payload         = { "img":base64.b64encode (buffer).decode ('utf-8'),
+                                    "data":last_data["dp"]}
+                self.socket_io.emit ("new_data", payload, broadcast=True)
                 last_sent_timestamp = int(time.time_ns() / 1000000)
     
     
