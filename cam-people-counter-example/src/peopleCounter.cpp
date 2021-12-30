@@ -20,27 +20,31 @@
 PeopleCounter::PeopleCounter (const QString &settings_file_path, std::unique_ptr<ImagesCapture> &img_source,
                                 ObjectDetector &detector, std::unique_ptr<PedestrianTracker> &tracker,
                                 QObject *parent)
-                                : QObject(parent), m_settings_file_path(settings_file_path), m_img_source(img_source),
+                                : QObject(parent), m_img_source(img_source),
+                                m_settings (settings_file_path, QSettings::IniFormat, parent),
                                 m_detector(detector), m_tracker(tracker), m_publish_timer(new QTimer(this)),
                                 m_ready(false), m_still_continue(true) {
-    
-    // TODO Loading settings file
+    // Checking correctness of m_settings
+    std::ifstream file(settings_file_path.toStdString().c_str());
+    if (!file) {
+        throw std::runtime_error ("File at path   " + settings_file_path.toStdString() + "   does not exists");
+    }
 
-    // TODO Setting up "m_publish_timer"
-    //m_publish_timer->setInterval();
-    connect(m_publish_timer, &QTimer::timeout, this, &PeopleCounter::sendValues);
+    // Setting up "m_publish_timer"
+    m_publish_timer->setInterval(m_settings.value ("DeviceSettings/publishInterval").toInt());
+    connect(m_publish_timer, &QTimer::timeout, this, &PeopleCounter::send_values);
 
-    // people_counter_thread will be built in 'checkInitResults' method
+    // people_counter_thread will be built in 'start_computation' method, called by 'check_init_results' method
 
     // TODO Building astarte SDK
     //m_astarte_sdk = new AstarteDeviceSDK(QDir::currentPath() + QStringLiteral("/astarte-device-%1-conf/transport-astarte.conf").arg(device), QDir::currentPath() + QStringLiteral("/interfaces"), device.toLatin1());
     //QString interfaces_dir  = "";   // TODO
     /*m_astarte_sdk = new AstarteDeviceSDK(settings_file_path, QDir::currentPath() + QStringLiteral("/interfaces"), device.toLatin1());
-    connect(m_astarte_sdk->init(), &Hemera::Operation::finished, this, &PeopleCounter::checkInitResult);
+    connect(m_astarte_sdk->init(), &Hemera::Operation::finished, this, &PeopleCounter::check_init_result);
     connect(m_astarte_sdk, &AstarteDeviceSDK::dataReceived, this, &PeopleCounter::handleIncomingData);*/
 
     // FIXME Remove me: test purposes
-    checkInitResult (nullptr);
+    start_computation ();
 }
 
 
@@ -78,14 +82,8 @@ void PeopleCounter::wait_for_completion () {
 
 
 
-void PeopleCounter::checkInitResult(Hemera::Operation *op) {
+void PeopleCounter::check_init_result(Hemera::Operation *op) {
     
-    // FIXME Remove me: test purposes
-    if (op == nullptr) {
-        start_computation ();
-        return ;
-    }
-
     std::cout << "Checking init result..\n";
     if (op->isError()) {
         qWarning() << "PeopleCounter init error: " << op->errorName() << op->errorMessage();
@@ -98,7 +96,7 @@ void PeopleCounter::checkInitResult(Hemera::Operation *op) {
 
 
 
-void PeopleCounter::sendValues() {
+void PeopleCounter::send_values() {
     // TODO
     std::cout << "Sending values..\n";
     return ;
@@ -131,11 +129,6 @@ void PeopleCounter::people_counter_function () {
         video_fps   = 60.0;
     }
 
-    /*cv::VideoWriter videoWriter;
-    if (!FLAGS_o.empty() && !videoWriter.open(FLAGS_o, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'),
-                                            cap->fps(), firstFrameSize)) {
-        throw std::runtime_error("Can't open video writer");
-    }*/
     cv::Size graphSize{static_cast<int>(frame.cols / 4), 60};
     Presenter presenter("", 10, graphSize);
 
@@ -164,8 +157,7 @@ void PeopleCounter::people_counter_function () {
                 cv::rectangle(frame, detection.rect, cv::Scalar(255, 0, 0), 3);
             }
 
-            // Drawing tracked detections only by RED color and print ID and detection
-            // confidence level.
+            // Drawing tracked detections only by RED color and print ID and detection confidence level.
             auto detected_objects   = m_tracker->TrackedDetections();
             //std::cout << "Seen " << detected_objects.size() << " objects\n";
             for (const auto &detection : detected_objects) {
@@ -179,19 +171,11 @@ void PeopleCounter::people_counter_function () {
             }
 
             frames_processed++;
-            /*if (videoWriter.isOpened() && (FLAGS_limit == 0 || frames_processed <= FLAGS_limit)) {
-                videoWriter.write(frame);
-            }*/
             
             cv::imshow("dbg", frame);
             char k  = cv::waitKey(5);
             if (k == ESC_KEY || k == Q_KEY)
                 break;
-
-            /*if (should_save_det_log && (frame_idx % 100 == 0)) {
-                DetectionLog log = tracker->GetDetectionLog(true);
-                SaveDetectionLogToTrajFile(detlog_out, log);
-            }*/
             
             frame   = m_img_source->read();
             if (!frame.data)
@@ -208,20 +192,6 @@ void PeopleCounter::people_counter_function () {
         catch (...) {
             qCritical() << "Catched an unexpected error in people counter execution\n";
         }
-        
-        
-        /*if (should_keep_tracking_info) {
-            DetectionLog log = tracker->GetDetectionLog(true);
-
-            if (should_save_det_log)
-                SaveDetectionLogToTrajFile(detlog_out, log);
-            if (should_print_out)
-                PrintDetectionLog(log);
-        }
-        if (should_use_perf_counter) {
-            m_detector.PrintPerformanceCounts(getFullDeviceName(ie, FLAGS_d_det));
-            tracker->PrintReidPerformanceCounts(getFullDeviceName(ie, FLAGS_d_reid));
-        }*/
     }
     
     std::cout << presenter.reportMeans() << '\n';
