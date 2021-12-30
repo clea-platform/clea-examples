@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
         std::unique_ptr<ImagesCapture> source = openImagesCapture(FLAGS_i, FLAGS_loop, FLAGS_first, FLAGS_read_limit);
 
 
-        PeopleCounter people_counter ("./app-settings.ini", std::ref(source), std::ref(pedestrian_detector),
+        PeopleCounter people_counter ("../app-settings.ini", std::ref(source), std::ref(pedestrian_detector),
                                         std::ref(tracker));
         people_counter_ptr  = &people_counter;
 
