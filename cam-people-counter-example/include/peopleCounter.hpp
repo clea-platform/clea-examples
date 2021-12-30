@@ -7,21 +7,27 @@
 #include <hemeraoperation.h>
 #include <AstarteDeviceSDK.h>
 
-/*namespace Hemera {
-class Operation;
-}
+#include <tracker.hpp>
+#include <detector.hpp>
+#include <utils/images_capture.h>
 
-class QTimer;
+#include <memory>
+#include <thread>
 
-class AstarteDeviceSDK;*/
+
 
 class PeopleCounter : public QObject
 {
     Q_OBJECT
 
 public:
-    PeopleCounter(const QByteArray &interface, const QByteArray &path, const QString &function, const QString &device, int interval = 1, double scale = 1, QObject *parent = nullptr);
+    PeopleCounter(const QString &settings_file_path, std::unique_ptr<ImagesCapture> &img_source,
+                    ObjectDetector &detector, std::unique_ptr<PedestrianTracker> &tracker,
+                    QObject *parent = nullptr);
     ~PeopleCounter();
+
+    void stop ();
+    void wait_for_completion ();
 
 private slots:
     void checkInitResult(Hemera::Operation *op);
@@ -30,14 +36,18 @@ private slots:
     void handleIncomingData(const QByteArray &interface, const QByteArray &path, const QVariant &value);
 
 private:
-    AstarteDeviceSDK *m_sdk;
-    QByteArray m_interface;
-    QByteArray m_path;
-    QString m_function;
-    QTimer *m_updateTimer;
-    double m_scale;
-    double m_xValue;
-    bool m_ready;
+    void start_computation ();
+    
+    std::atomic_bool m_still_continue;
+    std::thread m_people_counter_thread;
+    void people_counter_function ();
 
-    static int randomInterval();
+    AstarteDeviceSDK *m_astarte_sdk;
+    QString m_settings_file_path;
+    QTimer *m_publish_timer;
+    QByteArray m_interface;
+    std::unique_ptr<ImagesCapture> &m_img_source;
+    ObjectDetector &m_detector;
+    std::unique_ptr<PedestrianTracker> &m_tracker;
+    bool m_ready;
 };

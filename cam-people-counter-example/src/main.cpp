@@ -1,20 +1,3 @@
-/*
- * This file is part of Astarte.
- *
- * Copyright 2018 Ispirata Srl
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #include "peopleCounter.hpp"
 
@@ -24,10 +7,6 @@
 #include <QtCore/QObject>
 
 #include <HemeraCore/Operation>
-
-// Copyright (C) 2018-2019 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0
-//
 
 #include "core.hpp"
 #include "utils.hpp"
@@ -48,10 +27,14 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <thread>
+#include <csignal>
 #include <gflags/gflags.h>
 
 using namespace InferenceEngine;
-using ImageWithFrameIndex = std::pair<cv::Mat, int>;
+
+
+PeopleCounter *people_counter_ptr = nullptr;
 
 std::unique_ptr<PedestrianTracker>
 CreatePedestrianTracker(const std::string& reid_model,
@@ -97,10 +80,11 @@ CreatePedestrianTracker(const std::string& reid_model,
         std::cout << "WARNING: Reid model "
             << "was not specified. "
             << "Only fast reidentification approach will be used." << std::endl;
-    }*/
+    }//*/
 
     return tracker;
 }
+
 
 bool ParseAndCheckCommandLine(int argc, char *argv[]) {
     // ---------------------------Parsing and validation of input args--------------------------------------
@@ -127,6 +111,19 @@ bool ParseAndCheckCommandLine(int argc, char *argv[]) {
     return true;
 }
 
+
+void signal_handler (int sig_num) {
+    if (sig_num == SIGINT || sig_num == SIGTERM) {
+        people_counter_ptr->stop ();
+    }
+    else {
+        std::cerr << "Unhandled signal " << sig_num << std::endl;
+    }
+}
+
+
+
+
 int main(int argc, char **argv) {
     try {
         std::cout << "InferenceEngine: " << printable(*GetInferenceEngineVersion()) << std::endl;
@@ -135,23 +132,22 @@ int main(int argc, char **argv) {
             return 0;
         }
 
-        // Reading command line parameters.
-        auto det_model = FLAGS_m_det;
+        // Reading command line parameters
+        auto det_model  = FLAGS_m_det;
         auto reid_model = FLAGS_m_reid;
-
         auto detlog_out = FLAGS_out;
 
-        auto detector_mode = FLAGS_d_det;
-        auto reid_mode = FLAGS_d_reid;
+        auto detector_mode  = FLAGS_d_det;
+        auto reid_mode      = FLAGS_d_reid;
 
-        auto custom_cpu_library = FLAGS_l;
-        auto path_to_custom_layers = FLAGS_c;
-        bool should_use_perf_counter = FLAGS_pc;
+        auto custom_cpu_library         = FLAGS_l;
+        auto path_to_custom_layers      = FLAGS_c;
+        bool should_use_perf_counter    = FLAGS_pc;
 
-        bool should_print_out = FLAGS_r;
+        bool should_print_out   = FLAGS_r;
 
-        bool should_show = !FLAGS_no_show;
-        int delay = FLAGS_delay;
+        bool should_show        = !FLAGS_no_show;
+        int delay               = FLAGS_delay;
         if (!should_show)
             delay = -1;
         should_show = (delay >= 0);
@@ -159,10 +155,8 @@ int main(int argc, char **argv) {
         bool should_save_det_log = !detlog_out.empty();
 
         std::vector<std::string> devices{detector_mode, reid_mode};
-        InferenceEngine::Core ie =
-            LoadInferenceEngine(
-                devices, custom_cpu_library, path_to_custom_layers,
-                should_use_perf_counter);
+        InferenceEngine::Core ie    = LoadInferenceEngine(devices, custom_cpu_library,
+                                                            path_to_custom_layers, should_use_perf_counter);
 
         DetectorConfig detector_confid(det_model);
         ObjectDetector pedestrian_detector(detector_confid, ie, detector_mode);
@@ -172,206 +166,29 @@ int main(int argc, char **argv) {
             CreatePedestrianTracker(reid_model, ie, reid_mode,
                                     should_keep_tracking_info);
 
-        std::unique_ptr<ImagesCapture> cap = openImagesCapture(FLAGS_i, FLAGS_loop, FLAGS_first, FLAGS_read_limit);
-        double video_fps = cap->fps();
-        if (0.0 == video_fps) {
-            // the default frame rate for DukeMTMC dataset
-            video_fps = 60.0;
-        }
+        std::unique_ptr<ImagesCapture> source = openImagesCapture(FLAGS_i, FLAGS_loop, FLAGS_first, FLAGS_read_limit);
 
-        cv::Mat frame = cap->read();
-        if (!frame.data) throw std::runtime_error("Can't read an image from the input");
-        cv::Size firstFrameSize = frame.size();
 
-        cv::VideoWriter videoWriter;
-        if (!FLAGS_o.empty() && !videoWriter.open(FLAGS_o, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'),
-                                                  cap->fps(), firstFrameSize)) {
-            throw std::runtime_error("Can't open video writer");
-        }
-        uint32_t framesProcessed = 0;
-        cv::Size graphSize{static_cast<int>(frame.cols / 4), 60};
-        Presenter presenter(FLAGS_u, 10, graphSize);
+        PeopleCounter people_counter ("./app-settings.ini", std::ref(source), std::ref(pedestrian_detector),
+                                        std::ref(tracker));
+        people_counter_ptr  = &people_counter;
 
-        std::cout << "To close the application, press 'CTRL+C' here";
-        if (!FLAGS_no_show) {
-            std::cout << " or switch to the output window and press ESC key";
-        }
-        std::cout << std::endl;
+        std::signal (SIGINT, signal_handler);
+        std::signal (SIGTERM, signal_handler);
 
-        for (unsigned frameIdx = 0; ; ++frameIdx) {
-            pedestrian_detector.submitFrame(frame, frameIdx);
-            pedestrian_detector.waitAndFetchResults();
-
-            TrackedObjects detections = pedestrian_detector.getResults();
-
-            // timestamp in milliseconds
-            uint64_t cur_timestamp = static_cast<uint64_t >(1000.0 / video_fps * frameIdx);
-            tracker->Process(frame, detections, cur_timestamp);
-
-            presenter.drawGraphs(frame);
-            // Drawing colored "worms" (tracks).
-            frame = tracker->DrawActiveTracks(frame);
-
-            // Drawing all detected objects on a frame by BLUE COLOR
-            for (const auto &detection : detections) {
-                cv::rectangle(frame, detection.rect, cv::Scalar(255, 0, 0), 3);
-            }
-
-            // Drawing tracked detections only by RED color and print ID and detection
-            // confidence level.
-            auto detected_objects   = tracker->TrackedDetections();
-            std::cout << "Seen " << detected_objects.size() << " objects\n";
-            for (const auto &detection : detected_objects) {
-                std::cout << "Object " << detection.object_id << "->\n\tconf: " << detection.confidence << "\n\tframe: " << detection.frame_idx << "\n\ttime:" << detection.timestamp <<
-                                "\n\trect.x: " << detection.rect.x << "\n\trect.y: " << detection.rect.y << "\n\trect.width: " << detection.rect.width << "\n\theght: " << detection.rect.height << std::endl;
-                cv::rectangle(frame, detection.rect, cv::Scalar(0, 0, 255), 3);
-                std::string text = std::to_string(detection.object_id) +
-                    " conf: " + std::to_string(detection.confidence);
-                cv::putText(frame, text, detection.rect.tl(), cv::FONT_HERSHEY_COMPLEX,
-                            1.0, cv::Scalar(0, 0, 255), 3);
-            }
-
-            std::cout << "\n\n\n";
-
-            framesProcessed++;
-            if (videoWriter.isOpened() && (FLAGS_limit == 0 || framesProcessed <= FLAGS_limit)) {
-                videoWriter.write(frame);
-            }
-            if (should_show) {
-                cv::imshow("dbg", frame);
-                char k = cv::waitKey(delay);
-                if (k == 27)
-                    break;
-                presenter.handleKey(k);
-            }
-
-            if (should_save_det_log && (frameIdx % 100 == 0)) {
-                DetectionLog log = tracker->GetDetectionLog(true);
-                SaveDetectionLogToTrajFile(detlog_out, log);
-            }
-            frame = cap->read();
-            if (!frame.data) break;
-            if (frame.size() != firstFrameSize)
-                throw std::runtime_error("Can't track objects on images of different size");
-        }
-
-        if (should_keep_tracking_info) {
-            DetectionLog log = tracker->GetDetectionLog(true);
-
-            if (should_save_det_log)
-                SaveDetectionLogToTrajFile(detlog_out, log);
-            if (should_print_out)
-                PrintDetectionLog(log);
-        }
-        if (should_use_perf_counter) {
-            pedestrian_detector.PrintPerformanceCounts(getFullDeviceName(ie, FLAGS_d_det));
-            tracker->PrintReidPerformanceCounts(getFullDeviceName(ie, FLAGS_d_reid));
-        }
-
-        std::cout << presenter.reportMeans() << '\n';
+        // Waiting for people_counter completion
+        people_counter.wait_for_completion ();
     }
     catch (const std::exception& error) {
-        std::cerr << "[ ERROR ] " << error.what() << std::endl;
-        return 1;
+        qCritical() << "[ ERROR ] " << error.what() << "\n";
+        return EXIT_FAILURE;
     }
     catch (...) {
-        std::cerr << "[ ERROR ] Unknown/internal exception happened." << std::endl;
-        return 1;
+        qCritical() << "[ ERROR ] Unknown/internal exception happened.\n";
+        return EXIT_FAILURE;
     }
 
     std::cout << "Execution successful" << std::endl;
 
-    QByteArray deviceId = "lol";
-    
-    PeopleCounter astarte("ai.clea.examples.PeopleCounter.json", "/", "random", deviceId, 10, 10);
-
     return 0;
 }
-
-
-#if 0
-int main(int argc, char *argv[])
-{
-    QCoreApplication app(argc, argv);
-
-    app.setApplicationName(QObject::tr("Astarte Qt5 Stream Test"));
-    app.setOrganizationDomain(QStringLiteral("astarte-platform.org"));
-    app.setOrganizationName(QStringLiteral("Astarte"));
-
-    QCommandLineParser parser;
-    parser.setApplicationDescription(QObject::tr("Astarte stream test."));
-    parser.addVersionOption();
-    parser.addHelpOption();
-
-    parser.addOptions({
-        {
-            QStringList{QStringLiteral("f"), QStringLiteral("function")},
-            QObject::tr("Function that will be generated."),
-            QStringLiteral("function"),
-            QStringLiteral("random")
-        },
-        {
-            QStringList{QStringLiteral("s"), QStringLiteral("scale")},
-            QObject::tr("Scale that will be used."),
-            QStringLiteral("scale"),
-            QStringLiteral("0.0001")
-        },
-        {
-            QStringList{QStringLiteral("d"), QStringLiteral("device")},
-            QObject::tr("Device ID that will be used."),
-            QStringLiteral("device")
-        },
-        {
-            QStringList{QStringLiteral("i"), QStringLiteral("interval")},
-            QObject::tr("Interval in ms between two samples."),
-            QStringLiteral("interval"),
-            QStringLiteral("1000")
-        },
-        {
-            QStringList{QStringLiteral("n"), QStringLiteral("interface")},
-            QObject::tr("Target interface"),
-            QStringLiteral("interface"),
-            QStringLiteral("org.astarte-platform.genericsensors.Values")
-        },
-        {
-            QStringList{QStringLiteral("p"), QStringLiteral("path")},
-            QObject::tr("Target path."),
-            QStringLiteral("path"),
-            QStringLiteral("/streamTest/value")
-        }
-    });
-
-    parser.process(app);
-
-    bool ok;
-    QByteArray interface = parser.value(QStringLiteral("interface")).toLatin1();
-    QByteArray path = parser.value(QStringLiteral("path")).toLatin1();
-    QString function = parser.value(QStringLiteral("function"));
-    QString deviceId = parser.value(QStringLiteral("device"));
-
-    QByteArray decodedDeviceId = QByteArray::fromBase64(deviceId.toLatin1(), QByteArray::Base64UrlEncoding);
-    if (decodedDeviceId.count() != 16) {
-        qWarning() << deviceId << " doesn't seem to be a valid device ID! Make sure to use an URL encoded base64 128 bits ID.";
-        return EXIT_FAILURE;
-    }
-
-    int interval;
-    if (parser.value(QStringLiteral("interval")) == QStringLiteral("random")) {
-        interval = -1;
-    } else {
-        interval = parser.value(QStringLiteral("interval")).toInt(&ok);
-        if (!ok) {
-            qWarning() << "Invalid interval.";
-            return EXIT_FAILURE;
-        }
-    }
-    double scale = parser.value(QStringLiteral("scale")).toDouble(&ok);
-    if (!ok) {
-        qWarning() << "Invalid scale.";
-        return EXIT_FAILURE;
-    }
-
-    AstarteStreamQt5Test astarte(interface, path, function, deviceId, interval, scale);
-    return app.exec();
-}
-#endif
