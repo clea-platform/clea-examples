@@ -17,19 +17,12 @@
 #define ESC_KEY 27
 #define Q_KEY   113
 
-PeopleCounter::PeopleCounter (const QString &settings_file_path, std::unique_ptr<ImagesCapture> &img_source,
+PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture> &img_source,
                                 ObjectDetector &detector, std::unique_ptr<PedestrianTracker> &tracker,
                                 QObject *parent)
-                                : QObject(parent), m_img_source(img_source),
-                                m_settings (settings_file_path, QSettings::IniFormat, parent),
+                                : QObject(parent), m_img_source(img_source), m_settings (settings),
                                 m_detector(detector), m_tracker(tracker), m_publish_timer(new QTimer(this)),
                                 m_ready(false), m_still_continue(true) {
-    // Checking correctness of m_settings
-    std::ifstream file(settings_file_path.toStdString().c_str());
-    if (!file) {
-        throw std::runtime_error ("File at path   " + settings_file_path.toStdString() + "   does not exists");
-    }
-
     // Setting up "m_publish_timer"
     m_publish_timer->setInterval(m_settings.value ("DeviceSettings/publishInterval").toInt());
     connect(m_publish_timer, &QTimer::timeout, this, &PeopleCounter::send_values);

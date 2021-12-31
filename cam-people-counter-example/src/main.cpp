@@ -1,8 +1,6 @@
 
 #include "peopleCounter.hpp"
 
-#include <QtCore/QCommandLineParser>
-#include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
 #include <QtCore/QObject>
 
@@ -29,7 +27,8 @@
 #include <string>
 #include <thread>
 #include <csignal>
-#include <gflags/gflags.h>
+
+#define APP_SETTINGS_DEFAULT "./app-settings.ini"
 
 using namespace InferenceEngine;
 
@@ -125,34 +124,43 @@ void signal_handler (int sig_num) {
 
 
 int main(int argc, char **argv) {
+    std::string settings_file_path  = APP_SETTINGS_DEFAULT;
+    if (argc == 2) {
+        // Assigning command line specified settings file path
+        settings_file_path  = argv[1];
+    }
+
     try {
+        // Checking correctness of settings file
+        std::ifstream file(settings_file_path);
+        if (!file) {
+            throw std::runtime_error ("File at path   " + settings_file_path + "   does not exists");
+        }
+        QSettings settings (settings_file_path.c_str(), QSettings::IniFormat, nullptr);
+
+
         std::cout << "InferenceEngine: " << printable(*GetInferenceEngineVersion()) << std::endl;
 
-        if (!ParseAndCheckCommandLine(argc, argv)) {
-            return 0;
-        }
 
-        // Reading command line parameters
-        auto det_model  = FLAGS_m_det;
-        auto reid_model = FLAGS_m_reid;
-        auto detlog_out = FLAGS_out;
+        // Setting up parameters
+        auto det_model  = settings.value("ModelSettings/detectionModel").toString().toStdString();
+        auto reid_model = settings.value("ModelSettings/reidentificationModel").toString().toStdString();
+        auto detlog_out = settings.value("ModelSettings/detectionLogOutput").toString().toStdString();
 
-        auto detector_mode  = FLAGS_d_det;
-        auto reid_mode      = FLAGS_d_reid;
+        auto detector_mode  = settings.value("ModelSettings/detectionDevice").toString().toStdString();
+        auto reid_mode      = settings.value("ModelSettings/reidentificationDevice").toString().toStdString();
 
-        auto custom_cpu_library         = FLAGS_l;
-        auto path_to_custom_layers      = FLAGS_c;
-        bool should_use_perf_counter    = FLAGS_pc;
+        auto data_source    = settings.value("ModelSettings/dataSource").toString().toStdString();
+        auto source_loop    = false;
 
-        bool should_print_out   = FLAGS_r;
+        auto custom_cpu_library         = "";
+        auto path_to_custom_layers      = "";
+        bool should_use_perf_counter    = false;
 
-        bool should_show        = !FLAGS_no_show;
-        int delay               = FLAGS_delay;
-        if (!should_show)
-            delay = -1;
-        should_show = (delay >= 0);
+        bool should_print_out   = false;
 
         bool should_save_det_log = !detlog_out.empty();
+
 
         std::vector<std::string> devices{detector_mode, reid_mode};
         InferenceEngine::Core ie    = LoadInferenceEngine(devices, custom_cpu_library,
@@ -166,10 +174,10 @@ int main(int argc, char **argv) {
             CreatePedestrianTracker(reid_model, ie, reid_mode,
                                     should_keep_tracking_info);
 
-        std::unique_ptr<ImagesCapture> source = openImagesCapture(FLAGS_i, FLAGS_loop, FLAGS_first, FLAGS_read_limit);
+        std::unique_ptr<ImagesCapture> source = openImagesCapture(data_source, source_loop);
 
 
-        PeopleCounter people_counter ("../app-settings.ini", std::ref(source), std::ref(pedestrian_detector),
+        PeopleCounter people_counter (settings, std::ref(source), std::ref(pedestrian_detector),
                                         std::ref(tracker));
         people_counter_ptr  = &people_counter;
 

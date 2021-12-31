@@ -22,7 +22,7 @@ class PeopleCounter : public QObject
     Q_OBJECT
 
 public:
-    PeopleCounter(const QString &settings_file_path, std::unique_ptr<ImagesCapture> &img_source,
+    PeopleCounter(QSettings &settings, std::unique_ptr<ImagesCapture> &img_source,
                     ObjectDetector &detector, std::unique_ptr<PedestrianTracker> &tracker,
                     QObject *parent = nullptr);
     ~PeopleCounter();
@@ -44,7 +44,7 @@ private:
     void people_counter_function ();
 
     // Settings object
-    QSettings m_settings;
+    QSettings &m_settings;
     AstarteDeviceSDK *m_astarte_sdk;
     
     QTimer *m_publish_timer;
