@@ -20,9 +20,10 @@
 PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture> &img_source,
                                 ObjectDetector &detector, std::unique_ptr<PedestrianTracker> &tracker,
                                 QObject *parent)
-                                : QObject(parent), m_img_source(img_source), m_settings (settings),
-                                m_detector(detector), m_tracker(tracker), m_publish_timer(new QTimer(this)),
-                                m_ready(false), m_still_continue(true) {
+                                : QObject(parent), m_still_continue(true), m_settings (settings),
+                                m_astarte_sdk(nullptr), m_publish_timer(new QTimer(this)),
+                                m_img_source(img_source), m_detector(detector), m_tracker(tracker),
+                                m_ready(false) {
     // Setting up "m_publish_timer"
     m_publish_timer->setInterval(m_settings.value ("DeviceSettings/publishInterval").toInt());
     connect(m_publish_timer, &QTimer::timeout, this, &PeopleCounter::send_values);
