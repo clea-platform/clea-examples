@@ -185,6 +185,7 @@ int main(int argc, char **argv) {
         std::signal (SIGTERM, signal_handler);
 
         // Waiting for people_counter completion
+        std::cout << "Waiting for people_counter completion..\n\n";
         people_counter.wait_for_completion ();
     }
     catch (const std::exception& error) {

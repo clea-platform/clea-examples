@@ -14,6 +14,7 @@
 
 #include <memory>
 #include <thread>
+#include <future>
 
 
 
@@ -49,9 +50,10 @@ private:
     
     QTimer *m_publish_timer;
 
-    QByteArray m_interface;
+    //QByteArray m_interface;
     std::unique_ptr<ImagesCapture> &m_img_source;
     ObjectDetector &m_detector;
     std::unique_ptr<PedestrianTracker> &m_tracker;
-    bool m_ready;
+    std::promise<bool> m_initialized_promise;
+    std::shared_future<bool> m_initialized_future;
 };

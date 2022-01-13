@@ -23,45 +23,58 @@ PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture
                                 : QObject(parent), m_still_continue(true), m_settings (settings),
                                 m_astarte_sdk(nullptr), m_publish_timer(new QTimer(this)),
                                 m_img_source(img_source), m_detector(detector), m_tracker(tracker),
-                                m_ready(false) {
+                                m_initialized_future (m_initialized_promise.get_future()) {
     // Setting up "m_publish_timer"
     m_publish_timer->setInterval(m_settings.value ("DeviceSettings/publishInterval").toInt());
     connect(m_publish_timer, &QTimer::timeout, this, &PeopleCounter::send_values);
 
-    // people_counter_thread will be built in 'start_computation' method, called by 'check_init_results' method
+    // "m_people_counter_thread" will be built in 'start_computation' method, called by 'check_init_result' method
 
-    // TODO Building astarte SDK
-    //m_astarte_sdk = new AstarteDeviceSDK(QDir::currentPath() + QStringLiteral("/astarte-device-%1-conf/transport-astarte.conf").arg(device), QDir::currentPath() + QStringLiteral("/interfaces"), device.toLatin1());
-    //QString interfaces_dir  = "";   // TODO
-    /*m_astarte_sdk = new AstarteDeviceSDK(settings_file_path, QDir::currentPath() + QStringLiteral("/interfaces"), device.toLatin1());
+    /*qDebug() << "interfacesDirectory: " << m_settings.value ("DeviceSettings/interfacesDirectory").toString();
+    qDebug() << "deviceID: " << m_settings.value ("DeviceSettings/deviceID").toByteArray();*/
+    
+    // Building astarte SDK
+    //                                  path to config file
+    m_astarte_sdk = new AstarteDeviceSDK(settings.fileName(),
+                                            m_settings.value ("DeviceSettings/interfacesDirectory").toString(),
+                                            m_settings.value ("DeviceSettings/deviceID").toByteArray(),
+                                            parent);
     connect(m_astarte_sdk->init(), &Hemera::Operation::finished, this, &PeopleCounter::check_init_result);
-    connect(m_astarte_sdk, &AstarteDeviceSDK::dataReceived, this, &PeopleCounter::handleIncomingData);*/
-
-    // FIXME Remove me: test purposes
-    start_computation ();
+    connect(m_astarte_sdk, &AstarteDeviceSDK::dataReceived, this, &PeopleCounter::handleIncomingData);
 }
 
 
 
 
 PeopleCounter::~PeopleCounter() {
-    // TODO
+    stop ();
+    if (!m_initialized_future.get()) {
+        qCritical() << "\n\nPeopleCounterobject not succesfully initialized!";
+    }
+    if (m_people_counter_thread.joinable())
+        m_people_counter_thread.join ();
 }
 
 
 
 
 void PeopleCounter::start_computation () {
-    m_ready                 = true;
     // Building people_counter thread
-    m_people_counter_thread = std::thread (&PeopleCounter::people_counter_function, this);
+    m_people_counter_thread = std::thread ([this](){people_counter_function();});
     m_publish_timer->start();
+    m_initialized_promise.set_value (true);
 }
 
 
 
 
 void PeopleCounter::stop () {
+    try {
+        m_initialized_promise.set_value(false);     // FIXME Handle concurrency and check if is already set
+        //qWarning() << "\nUninitialized object!";
+    } catch (std::future_error &e) {
+        //qWarning() << "\nCurrent object is already initialized";
+    }
     m_publish_timer->stop ();
     m_still_continue    = false;
 }
@@ -70,7 +83,13 @@ void PeopleCounter::stop () {
 
 
 void PeopleCounter::wait_for_completion () {
-    m_people_counter_thread.join ();
+    m_initialized_future.wait();
+    if (!m_initialized_future.valid() ||
+        (m_initialized_future.valid() && !m_initialized_future.get())) {
+        return ;
+    }
+
+    m_people_counter_thread.join();
 }
 
 
@@ -81,8 +100,8 @@ void PeopleCounter::check_init_result(Hemera::Operation *op) {
     std::cout << "Checking init result..\n";
     if (op->isError()) {
         qWarning() << "PeopleCounter init error: " << op->errorName() << op->errorMessage();
+        m_initialized_promise.set_value (false);
     } else {
-        qWarning() << "Starting..\n";
         start_computation ();
     }
 }
@@ -113,6 +132,14 @@ void PeopleCounter::people_counter_function () {
     cv::Mat frame               = m_img_source->read();
     double video_fps            = m_img_source->fps();
     TrackedObjects detections;
+
+
+    // Waiting for startup completion
+    m_initialized_future.wait();
+    if (!m_initialized_future.valid() ||
+        (m_initialized_future.valid() && !m_initialized_future.get())) {
+        return ;
+    }
 
 
     if (!frame.data)
