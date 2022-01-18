@@ -1,6 +1,11 @@
 TEMPLATE = app
 TARGET = cam-people-counter-example
 
+MOC_DIR     = build/moc
+OBJECTS_DIR = build/obj
+UI_DIR      = build/ui
+RCC_DIR     = build/
+
 INCLUDEPATH += include \
                 /usr/local/include/AstarteDeviceSDKQt5 \
                 /opt/intel/openvino_2021.4.689/deployment_tools/inference_engine/include \
