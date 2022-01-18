@@ -22,16 +22,13 @@ PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture
                                 QObject *parent)
                                 : QObject(parent), m_still_continue(true), m_settings (settings),
                                 m_astarte_sdk(nullptr), m_publish_timer(new QTimer(this)),
-                                m_img_source(img_source), m_detector(detector), m_tracker(tracker),
-                                m_initialized_future (m_initialized_promise.get_future()) {
+                                m_img_source(img_source), m_detector(detector), m_tracker(tracker) {
     // Setting up "m_publish_timer"
     m_publish_timer->setInterval(m_settings.value ("DeviceSettings/publishInterval").toInt());
     connect(m_publish_timer, &QTimer::timeout, this, &PeopleCounter::send_values);
 
-    // "m_people_counter_thread" will be built in 'start_computation' method, called by 'check_init_result' method
-
-    /*qDebug() << "interfacesDirectory: " << m_settings.value ("DeviceSettings/interfacesDirectory").toString();
-    qDebug() << "deviceID: " << m_settings.value ("DeviceSettings/deviceID").toByteArray();*/
+    // Building "m_people_counter_thread"
+    connect (&m_people_counter_thread, &QThread::started, this, &PeopleCounter::people_counter_function);
     
     // Building astarte SDK
     //                                  path to config file
@@ -48,48 +45,52 @@ PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture
 
 PeopleCounter::~PeopleCounter() {
     stop ();
-    if (!m_initialized_future.get()) {
+    /*if (!m_initialized_future.get()) {
         qCritical() << "\n\nPeopleCounterobject not succesfully initialized!";
     }
     if (m_people_counter_thread.joinable())
-        m_people_counter_thread.join ();
+        m_people_counter_thread.join ();*/
+    m_people_counter_thread.wait();
 }
 
 
 
 
 void PeopleCounter::start_computation () {
-    // Building people_counter thread
-    m_people_counter_thread = std::thread ([this](){people_counter_function();});
+    m_people_counter_thread.start();
     m_publish_timer->start();
-    m_initialized_promise.set_value (true);
+    //m_initialized_promise.set_value (true);
 }
 
 
 
 
 void PeopleCounter::stop () {
-    try {
+    /*try {
         m_initialized_promise.set_value(false);     // FIXME Handle concurrency and check if is already set
         //qWarning() << "\nUninitialized object!";
     } catch (std::future_error &e) {
         //qWarning() << "\nCurrent object is already initialized";
-    }
-    m_publish_timer->stop ();
+    }*/
     m_still_continue    = false;
+    m_publish_timer->stop ();
+    
+    if (m_people_counter_thread.isRunning())
+        m_people_counter_thread.exit();
 }
 
 
 
 
 void PeopleCounter::wait_for_completion () {
-    m_initialized_future.wait();
-    if (!m_initialized_future.valid() ||
+    /*if (!m_initialized_future.valid() ||
         (m_initialized_future.valid() && !m_initialized_future.get())) {
         return ;
-    }
+    }*/
 
-    m_people_counter_thread.join();
+    /*qDebug() << "m_people_counter_thread.isRunning() : " << m_people_counter_thread.isRunning() << "\n" <<
+                    "m_people_counter_thread.isFinished() : " << m_people_counter_thread.isFinished();*/
+    m_people_counter_thread.wait();
 }
 
 
@@ -97,10 +98,11 @@ void PeopleCounter::wait_for_completion () {
 
 void PeopleCounter::check_init_result(Hemera::Operation *op) {
     
-    std::cout << "Checking init result..\n";
+    qDebug() << "Checking init result..\n";
+    qDebug() << "Timer started: " << m_publish_timer->isActive();
     if (op->isError()) {
         qWarning() << "PeopleCounter init error: " << op->errorName() << op->errorMessage();
-        m_initialized_promise.set_value (false);
+        //m_initialized_promise.set_value (false);
     } else {
         start_computation ();
     }
@@ -135,11 +137,11 @@ void PeopleCounter::people_counter_function () {
 
 
     // Waiting for startup completion
-    m_initialized_future.wait();
+    /*m_initialized_future.wait();
     if (!m_initialized_future.valid() ||
         (m_initialized_future.valid() && !m_initialized_future.get())) {
         return ;
-    }
+    }*/
 
 
     if (!frame.data)
@@ -153,8 +155,7 @@ void PeopleCounter::people_counter_function () {
     cv::Size graphSize{static_cast<int>(frame.cols / 4), 60};
     Presenter presenter("", 10, graphSize);
 
-    std::cout << "\n\nTo close the application, press 'CTRL+C' here or switch to the output window " \
-                    "and press ESC key or Q key\n\n";
+    std::cout << "\n\nTo close the application, press 'CTRL+C'\n\n";
 
     while (m_still_continue) {
         ++frame_idx;
@@ -182,8 +183,8 @@ void PeopleCounter::people_counter_function () {
             auto detected_objects   = m_tracker->TrackedDetections();
             //std::cout << "Seen " << detected_objects.size() << " objects\n";
             for (const auto &detection : detected_objects) {
-                /*std::cout << "Object " << detection.object_id << "->\n\tconf: " << detection.confidence << "\n\tframe: " << detection.frame_idx << "\n\ttime:" << detection.timestamp <<
-                                "\n\trect.x: " << detection.rect.x << "\n\trect.y: " << detection.rect.y << "\n\trect.width: " << detection.rect.width << "\n\theght: " << detection.rect.height << std::endl;*/
+                std::cout << "Object " << detection.object_id << "->\n\tconf: " << detection.confidence << "\n\tframe: " << detection.frame_idx << "\n\ttime:" << detection.timestamp <<
+                                "\n\trect.x: " << detection.rect.x << "\n\trect.y: " << detection.rect.y << "\n\trect.width: " << detection.rect.width << "\n\theght: " << detection.rect.height << std::endl;
                 cv::rectangle(frame, detection.rect, cv::Scalar(0, 0, 255), 3);
                 std::string text = std::to_string(detection.object_id) +
                     " conf: " + std::to_string(detection.confidence);
@@ -214,6 +215,6 @@ void PeopleCounter::people_counter_function () {
             qCritical() << "Catched an unexpected error in people counter execution\n";
         }
     }
-    
+
     std::cout << presenter.reportMeans() << '\n';
 }

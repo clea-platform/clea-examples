@@ -3,6 +3,8 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QObject>
+#include <QtCore/QCoreApplication>
+#include <QtCore/QDir>
 
 #include <HemeraCore/Operation>
 
@@ -34,6 +36,7 @@ using namespace InferenceEngine;
 
 
 PeopleCounter *people_counter_ptr = nullptr;
+QCoreApplication *app_ptr   = nullptr;
 
 std::unique_ptr<PedestrianTracker>
 CreatePedestrianTracker(const std::string& reid_model,
@@ -113,6 +116,7 @@ bool ParseAndCheckCommandLine(int argc, char *argv[]) {
 
 void signal_handler (int sig_num) {
     if (sig_num == SIGINT || sig_num == SIGTERM) {
+        app_ptr->quit();
         people_counter_ptr->stop ();
     }
     else {
@@ -137,6 +141,14 @@ int main(int argc, char **argv) {
             throw std::runtime_error ("File at path   " + settings_file_path + "   does not exists");
         }
         QSettings settings (settings_file_path.c_str(), QSettings::IniFormat, nullptr);
+
+        // Checking persistence directory existance
+        QString persistence_directory_path  = settings.value("AstarteTransport/persistencyDir").toString();
+        QDir directory (persistence_directory_path);
+        if (!directory.exists()) {
+            qInfo() << "Creating persistency directory : " << directory.dirName();
+            directory.mkdir (persistence_directory_path);
+        }
 
 
         std::cout << "InferenceEngine: " << printable(*GetInferenceEngineVersion()) << std::endl;
@@ -181,8 +193,13 @@ int main(int argc, char **argv) {
                                         std::ref(tracker));
         people_counter_ptr  = &people_counter;
 
+        QCoreApplication core_app (argc, argv);
+        app_ptr = &core_app;
+
         std::signal (SIGINT, signal_handler);
         std::signal (SIGTERM, signal_handler);
+
+        core_app.exec();
 
         // Waiting for people_counter completion
         std::cout << "Waiting for people_counter completion..\n\n";

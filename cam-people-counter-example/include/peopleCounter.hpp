@@ -4,6 +4,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QSettings>
+#include <QtCore/QThread>
 
 #include <hemeraoperation.h>
 #include <AstarteDeviceSDK.h>
@@ -37,12 +38,13 @@ private slots:
 
     void handleIncomingData(const QByteArray &interface, const QByteArray &path, const QVariant &value);
 
+    void people_counter_function ();
+
 private:
     void start_computation ();
 
     std::atomic_bool m_still_continue;
-    std::thread m_people_counter_thread;
-    void people_counter_function ();
+    QThread m_people_counter_thread;
 
     // Settings object
     QSettings &m_settings;
@@ -54,6 +56,4 @@ private:
     std::unique_ptr<ImagesCapture> &m_img_source;
     ObjectDetector &m_detector;
     std::unique_ptr<PedestrianTracker> &m_tracker;
-    std::promise<bool> m_initialized_promise;
-    std::shared_future<bool> m_initialized_future;
 };

@@ -26,7 +26,7 @@
         },
         {
             "endpoint": "/%{camera_id}/people",
-            "type": "stringarray",                      // array element: "{id, conf, pos_zone:{id, name}}"
+            "type": "stringarray",
             "reliability":"unique",
             "retention":"volatile",
             "expiry":60,
