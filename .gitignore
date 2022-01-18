@@ -1,3 +1,9 @@
 *build
 .vscode
+Makefile
+astarte_persistence.d
 astarte-device-sdk-qt5
+
+# cam-people-counter-example application
+cam-people-counter-example/cam-people-counter-example
+cam-people-counter-example/.qmake.stash
