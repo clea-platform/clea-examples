@@ -9,6 +9,8 @@
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QTimer>
+#include <QtCore/QList>
+#include <QtCore/QVariantHash>
 
 #include <climits>
 #include <iostream>
@@ -23,6 +25,7 @@ PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture
                                 : QObject(parent), m_still_continue(true), m_settings (settings),
                                 m_astarte_sdk(nullptr), m_publish_timer(new QTimer(this)),
                                 m_img_source(img_source), m_detector(detector), m_tracker(tracker) {
+    
     // Setting up "m_publish_timer"
     m_publish_timer->setInterval(m_settings.value ("DeviceSettings/publishInterval").toInt());
     connect(m_publish_timer, &QTimer::timeout, this, &PeopleCounter::send_values);
@@ -99,9 +102,9 @@ void PeopleCounter::wait_for_completion () {
 void PeopleCounter::check_init_result(Hemera::Operation *op) {
     
     qDebug() << "Checking init result..\n";
-    qDebug() << "Timer started: " << m_publish_timer->isActive();
     if (op->isError()) {
-        qWarning() << "PeopleCounter init error: " << op->errorName() << op->errorMessage();
+        qWarning() << "PeopleCounter init error: " << op->errorName() << "\n\t" << op->errorMessage();
+        throw std::runtime_error ("");
         //m_initialized_promise.set_value (false);
     } else {
         start_computation ();
@@ -113,7 +116,29 @@ void PeopleCounter::check_init_result(Hemera::Operation *op) {
 
 void PeopleCounter::send_values() {
     // TODO
-    std::cout << "Sending values..\n";
+    std::cout << "Sending dummy values..\n";
+
+    AstarteDeviceSDK::ConnectionStatus current_status    = m_astarte_sdk->connectionStatus();
+    if (current_status != AstarteDeviceSDK::ConnectionStatus::ConnectedStatus) {
+        qCritical() << "SDK currently not connected to Astarte! Current status: " << current_status;
+    }
+    else {
+        QList<QString> items            = {"a", "b", "c"};
+        QVariantHash data;
+        data["/1/reading_timestamp"]    = 100;
+        data["/1/people_count"]         = 1000;
+        data["/1/people"]               = QVariant(items);
+
+        bool sent_result    = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/interfaceName").toByteArray(),
+                                                        data, QDateTime::currentDateTime());
+
+        if (!sent_result) {
+            qWarning() << "Send operation reports an error!";
+        }
+
+        qDebug() << "Result " << sent_result;
+    }
+
     return ;
 }
 
@@ -196,8 +221,8 @@ void PeopleCounter::people_counter_function () {
             
             cv::imshow("dbg", frame);
             char k  = cv::waitKey(5);
-            if (k == ESC_KEY || k == Q_KEY)
-                break;
+            /*if (k == ESC_KEY || k == Q_KEY)
+                break;*/
             
             frame   = m_img_source->read();
             if (!frame.data)
