@@ -1,0 +1,72 @@
+
+.window-center {
+  position: relative;
+  margin-left: 47%;
+  margin-top: 20%;
+}
+
+.counter-section {
+  margin: 8px;
+}
+
+.counter-container {
+  display: flex;
+  justify-content: space-between;
+  color: white;
+}
+
+.counter-title {
+  display: flex;
+  flex-direction: column;;
+}
+
+.counter-number {
+  font-size: 3em;
+  font-weight: bold;
+}
+
+.area-section {
+  margin: 8px;
+}
+
+.area-container {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: center;
+  align-items: center;
+}
+
+.area-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.area-number {
+  font-size: 2.3em;
+  font-weight: bold;
+}
+
+.chart-section {
+  margin: 8px;
+}
+
+.chart-title {
+  display: flex;
+  justify-content: space-between;
+}
+
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.dot {
+  height: 15px;
+  width: 15px;
+  background-color: orange;
+  border-radius: 50%;
+  display: inline-block;
+}
