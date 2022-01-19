@@ -11,6 +11,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QList>
 #include <QtCore/QVariantHash>
+#include <QtCore/QJsonDocument>
 
 #include <climits>
 #include <iostream>
@@ -26,6 +27,33 @@ PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture
                                 m_astarte_sdk(nullptr), m_publish_timer(new QTimer(this)),
                                 m_img_source(img_source), m_detector(detector), m_tracker(tracker) {
     
+    // Setting up scene settings
+    QFile scene_settings_file (m_settings.value ("AppSettings/sceneSettingsFile").toString());
+    if (!scene_settings_file.open(QIODevice::ReadOnly)) {
+        qCritical() << "Cannot open scene settings file " << m_settings.value ("AppSettings/sceneSettingsFile").toString();
+        throw std::runtime_error ("Cannot open scene settings file!");
+    }
+        // Reading the file and close it.
+	QByteArray json_data = scene_settings_file.readAll();
+	scene_settings_file.close();
+	QJsonParseError parse_error;
+	QJsonDocument json_document = QJsonDocument::fromJson(json_data, &parse_error);
+	    // Failing if file content is invalid
+	if (parse_error.error != QJsonParseError::NoError)
+	{
+		qCritical() << "Failed to parse scene settings file:" << parse_error.errorString()
+					 << "at offset " << QString::number(parse_error.offset);
+		throw std::runtime_error ("");
+	}
+        // Making sure the root is an object.
+	if (!json_document.isObject())
+	{
+		qCritical() << "Invalid scene settings JSON: Root should be an array.";
+		throw std::runtime_error ("");
+	}
+	QJsonObject json_scene  = json_document.object();
+    load_scene (json_scene);
+
     // Setting up "m_publish_timer"
     m_publish_timer->setInterval(m_settings.value ("DeviceSettings/publishInterval").toInt());
     connect(m_publish_timer, &QTimer::timeout, this, &PeopleCounter::send_values);
@@ -47,13 +75,32 @@ PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture
 
 
 PeopleCounter::~PeopleCounter() {
+    // FIXME Consider possibility to destroy object before astarte connection
     stop ();
-    /*if (!m_initialized_future.get()) {
-        qCritical() << "\n\nPeopleCounterobject not succesfully initialized!";
-    }
-    if (m_people_counter_thread.joinable())
-        m_people_counter_thread.join ();*/
     m_people_counter_thread.wait();
+}
+
+
+
+
+void PeopleCounter::load_scene (QJsonObject &json_scene) {
+    // Loading scene from "json_scene" object
+    QVariantMap map_scene  = json_scene.toVariantMap();
+
+    for (auto it = map_scene.begin(); it != map_scene.end(); ++it) {
+        Polygon polygon;
+        int zone_idx            = it.key().toInt();
+        QVariantList j_vertices = it.value().toList();
+        
+        for (auto j_vertex : j_vertices) {
+            Point pt;
+            pt.x    = j_vertex.toMap().value("x").toDouble();
+            pt.y    = j_vertex.toMap().value("y").toDouble();
+            polygon.add_vertex (pt);
+        }
+        
+        m_scene.push_back (polygon);
+    }
 }
 
 
@@ -62,19 +109,12 @@ PeopleCounter::~PeopleCounter() {
 void PeopleCounter::start_computation () {
     m_people_counter_thread.start();
     m_publish_timer->start();
-    //m_initialized_promise.set_value (true);
 }
 
 
 
 
 void PeopleCounter::stop () {
-    /*try {
-        m_initialized_promise.set_value(false);     // FIXME Handle concurrency and check if is already set
-        //qWarning() << "\nUninitialized object!";
-    } catch (std::future_error &e) {
-        //qWarning() << "\nCurrent object is already initialized";
-    }*/
     m_still_continue    = false;
     m_publish_timer->stop ();
     
@@ -86,13 +126,6 @@ void PeopleCounter::stop () {
 
 
 void PeopleCounter::wait_for_completion () {
-    /*if (!m_initialized_future.valid() ||
-        (m_initialized_future.valid() && !m_initialized_future.get())) {
-        return ;
-    }*/
-
-    /*qDebug() << "m_people_counter_thread.isRunning() : " << m_people_counter_thread.isRunning() << "\n" <<
-                    "m_people_counter_thread.isFinished() : " << m_people_counter_thread.isFinished();*/
     m_people_counter_thread.wait();
 }
 
@@ -105,7 +138,6 @@ void PeopleCounter::check_init_result(Hemera::Operation *op) {
     if (op->isError()) {
         qWarning() << "PeopleCounter init error: " << op->errorName() << "\n\t" << op->errorMessage();
         throw std::runtime_error ("");
-        //m_initialized_promise.set_value (false);
     } else {
         start_computation ();
     }
@@ -115,7 +147,7 @@ void PeopleCounter::check_init_result(Hemera::Operation *op) {
 
 
 void PeopleCounter::send_values() {
-    // TODO
+    // FIXME Send real values
     std::cout << "Sending dummy values..\n";
 
     AstarteDeviceSDK::ConnectionStatus current_status    = m_astarte_sdk->connectionStatus();
@@ -161,17 +193,11 @@ void PeopleCounter::people_counter_function () {
     TrackedObjects detections;
 
 
-    // Waiting for startup completion
-    /*m_initialized_future.wait();
-    if (!m_initialized_future.valid() ||
-        (m_initialized_future.valid() && !m_initialized_future.get())) {
-        return ;
-    }*/
-
-
     if (!frame.data)
         throw std::runtime_error("Can't read an image from the input");
     cv::Size firstFrameSize = frame.size();
+
+    // TODO Computing actual vertices of polygons zones depending on frame size
     
     if (video_fps == 0.0) {
         video_fps   = 60.0;
@@ -204,12 +230,26 @@ void PeopleCounter::people_counter_function () {
                 cv::rectangle(frame, detection.rect, cv::Scalar(255, 0, 0), 3);
             }
 
+            // TODO Print on frame lines which indentify the zones
+
+            // TODO Creating "current_detections" object which contains detected people in current frame
+
+            // TODO Taking mutex for "detections_list" shared object
+
             // Drawing tracked detections only by RED color and print ID and detection confidence level.
             auto detected_objects   = m_tracker->TrackedDetections();
-            //std::cout << "Seen " << detected_objects.size() << " objects\n";
             for (const auto &detection : detected_objects) {
                 std::cout << "Object " << detection.object_id << "->\n\tconf: " << detection.confidence << "\n\tframe: " << detection.frame_idx << "\n\ttime:" << detection.timestamp <<
                                 "\n\trect.x: " << detection.rect.x << "\n\trect.y: " << detection.rect.y << "\n\trect.width: " << detection.rect.width << "\n\theght: " << detection.rect.height << std::endl;
+                
+                // TODO Finding out person center and the zone which belongs to
+                double x_center_scaled  = ((double) detection.rect.x + ((double) detection.rect.width/2))/firstFrameSize.width;
+                double y_center_scaled  = ((double) detection.rect.y + ((double)detection.rect.height/2))/firstFrameSize.height;
+                qDebug() << "Scaled x,y: " << x_center_scaled << ", " << y_center_scaled;
+
+                // TODO Adding id and zone to "current_detections" object
+
+                // Drawing person bounding box, id and confidence on frame
                 cv::rectangle(frame, detection.rect, cv::Scalar(0, 0, 255), 3);
                 std::string text = std::to_string(detection.object_id) +
                     " conf: " + std::to_string(detection.confidence);
@@ -217,16 +257,18 @@ void PeopleCounter::people_counter_function () {
                             1.0, cv::Scalar(0, 0, 255), 3);
             }
 
+            // TODO Adding "current_detections" to "detections_list" object
+
             frames_processed++;
             
             cv::imshow("dbg", frame);
             char k  = cv::waitKey(5);
-            /*if (k == ESC_KEY || k == Q_KEY)
-                break;*/
             
             frame   = m_img_source->read();
-            if (!frame.data)
+            if (!frame.data) {
+                qFatal() << "No data in just read frame!";
                 break;
+            }
             if (frame.size() != firstFrameSize)
                 throw std::runtime_error("Can't track objects on images of different size");
         }

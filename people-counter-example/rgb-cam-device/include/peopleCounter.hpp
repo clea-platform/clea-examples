@@ -5,10 +5,12 @@
 #include <QtCore/QObject>
 #include <QtCore/QSettings>
 #include <QtCore/QThread>
+#include <QtCore/QJsonObject>
 
 #include <hemeraoperation.h>
 #include <AstarteDeviceSDK.h>
 
+#include <polygon.hpp>
 #include <tracker.hpp>
 #include <detector.hpp>
 #include <utils/images_capture.h>
@@ -18,9 +20,10 @@
 #include <future>
 
 
+using Scene = std::vector<Polygon>;
 
-class PeopleCounter : public QObject
-{
+
+class PeopleCounter : public QObject {
     Q_OBJECT
 
 public:
@@ -43,6 +46,9 @@ private slots:
 private:
     void start_computation ();
 
+    void load_scene (QJsonObject &json_scene);
+    Scene m_scene;
+    
     std::atomic_bool m_still_continue;
     QThread m_people_counter_thread;
 
