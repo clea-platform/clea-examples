@@ -32,6 +32,7 @@ HEADERS += include/peopleCounter.hpp
 
 SOURCES += src/main.cpp \
             src/peopleCounter.cpp \
+            src/polygon.cpp \
             src/cnn.cpp \
             src/detector.cpp \
             src/distance.cpp \
