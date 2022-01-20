@@ -16,8 +16,8 @@
 #include <utils/images_capture.h>
 
 #include <memory>
-#include <thread>
-#include <future>
+#include <mutex>
+#include <condition_variable>
 
 
 using Scene = std::vector<Polygon>;
@@ -44,18 +44,33 @@ private slots:
     void people_counter_function ();
 
 private:
+    using DetectedPerson    = struct {
+        uint person_id;
+        double confidence;
+        uint zone_id;
+        QString zone_name;
+    };
+    using Detections        = struct {
+        uint ms_timestamp;
+        QList<DetectedPerson> detections;
+    };
+
+
     void start_computation ();
 
     void load_scene (QJsonObject &json_scene);
+    
+    // Settings object
     Scene m_scene;
+    QSettings &m_settings;
+    AstarteDeviceSDK *m_astarte_sdk;
     
     std::atomic_bool m_still_continue;
     QThread m_people_counter_thread;
 
-    // Settings object
-    QSettings &m_settings;
-    AstarteDeviceSDK *m_astarte_sdk;
-    
+    QList<Detections> m_detections_list;
+    std::mutex m_detections_mutex;
+
     QTimer *m_publish_timer;
 
     //QByteArray m_interface;
