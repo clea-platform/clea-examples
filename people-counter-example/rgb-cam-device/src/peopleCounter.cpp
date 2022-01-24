@@ -149,67 +149,46 @@ void PeopleCounter::check_init_result(Hemera::Operation *op) {
 
 
 void PeopleCounter::send_values() {
-    std::unique_lock<std::mutex> detections_lock (m_detections_mutex);
+    QVariantHash payload;
 
-    if (m_detections_list.isEmpty()) {
-        // TODO Do something
-        qCritical() << "NO FRAME PROCESSED UNTIL LAST SENT!";
-    }
-    else {
-        auto last_detection    = m_detections_list.back();
-        
-        if (last_detection.detections.length() > 0) {
-            // Debug print
-            /*qDebug() << "time: " << last_detection.ms_timestamp << "\nItems:";
-            for (auto &d : last_detection.detections) {
-                qDebug() << "\tid: " << d.person_id << ", conf: " << d.confidence <<
-                            ", zone id: " << d.zone_id << ", zone name: " << d.zone_name;
-            }                                                                               //*/
+    {
+        std::unique_lock<std::mutex> detections_lock (m_detections_mutex);
 
+        if (m_detections_list.isEmpty()) {
+            qCritical() << "NO FRAME PROCESSED UNTIL LAST SENT!";
+            return ;
+        }
+        else {
+            auto last_detection    = m_detections_list.back();
+            
             // Building data to be sent to Astarte
-            QVariantHash data;
             QList<QString> items;
-            // TODO Build "items" list with detected people
-            data["/1/reading_timestamp"]    = last_detection.ms_timestamp;
-            data["/1/people_count"]         = last_detection.detections.count();
+            // Building "items" list with detected people
+            payload["/1/reading_timestamp"]    = last_detection.ms_timestamp;
+            payload["/1/people_count"]         = last_detection.detections.count();
+            for (auto &it : last_detection.detections) {
+                // item : {id, conf, pos_zone:{id, name}}
+                QJsonObject j_item;
+                QJsonObject j_zone;
+                j_zone.insert ("id", (int) it.zone_id);
+                j_zone.insert ("name", it.zone_name);
+                j_item.insert ("pos_zone", j_zone);
+                j_item.insert ("id", (int) it.person_id);
+                j_item.insert ("conf", it.confidence);
+                QString s_item  = QJsonDocument(j_item).toJson(QJsonDocument::Compact);
+                items.push_back (s_item);
+            }
+            payload["/1/people"]    = QVariant(items);
+
+            m_detections_list.clear();
         }
-
-        detections_lock.release ();
-
-        // TODO Actually sending data to Astarte
-        /*bool sent_result    = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/interfaceName").toByteArray(),
-                                                        data, QDateTime::currentDateTime());
-        if (!sent_result) {
-            qWarning() << "Send operation reports an error!";
-        }*/
     }
-
-
-    return ;
-
-    // FIXME Remove me!
-    // TODO Send real values
-    std::cout << "Sending dummy values..\n";
-
-    AstarteDeviceSDK::ConnectionStatus current_status    = m_astarte_sdk->connectionStatus();
-    if (current_status != AstarteDeviceSDK::ConnectionStatus::ConnectedStatus) {
-        qCritical() << "SDK currently not connected to Astarte! Current status: " << current_status;
-    }
-    else {
-        QList<QString> items            = {"a", "b", "c"};
-        QVariantHash data;
-        data["/1/reading_timestamp"]    = 100;
-        data["/1/people_count"]         = 1000;
-        data["/1/people"]               = QVariant(items);
-
-        bool sent_result    = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/interfaceName").toByteArray(),
-                                                        data, QDateTime::currentDateTime());
-
-        if (!sent_result) {
-            qWarning() << "Send operation reports an error!";
-        }
-
-        qDebug() << "Result " << sent_result;
+    
+    // Actually sending data to Astarte
+    bool sent_result    = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/interfaceName").toByteArray(),
+                                                    payload, QDateTime::currentDateTime());
+    if (!sent_result) {
+        qWarning() << "Send operation reports an error!";
     }
 
     return ;
@@ -281,9 +260,6 @@ void PeopleCounter::people_counter_function () {
             if (!is_on_scene_side(new_segment, first_frame_size)) {
                 for (auto &side : sides_segments) {
                     if (segment_comparator(side, new_segment)) {
-                        qDebug() << "Segment " << new_segment.first.x << ", " << new_segment.first.y <<
-                                    " -> " << new_segment.second.x << ", " << new_segment.second.y <<
-                                    " already exists!";
                         segment_found   = true;
                         break;
                     }
@@ -296,13 +272,6 @@ void PeopleCounter::people_counter_function () {
         }
     }
     
-    /*qDebug() << "sides_segments count: " << sides_segments.size();
-    for (auto &s : sides_segments) {
-        qDebug() << "Segment " << s.first.x << "," << s.first.y <<
-                    " -> " << s.second.x << "," << s.second.y;
-    }*/
-
-    
     if (video_fps == 0.0) {
         video_fps   = 60.0;
     }
@@ -310,7 +279,7 @@ void PeopleCounter::people_counter_function () {
     cv::Size graphSize{static_cast<int>(frame.cols / 4), 60};
     Presenter presenter("", 10, graphSize);
 
-    std::cout << "\n\nTo close the application, press 'CTRL+C'\n\n";
+    qInfo() << "\n\nTo close the application, press 'CTRL+C'\n\n";
 
     while (m_still_continue) {
         ++frame_idx;
@@ -358,12 +327,6 @@ void PeopleCounter::people_counter_function () {
                         " conf: " + std::to_string(detection.confidence);
                     cv::putText(frame, text, detection.rect.tl(), cv::FONT_HERSHEY_COMPLEX,
                                 1.0, cv::Scalar(0, 0, 255), 3);
-
-                    /*qDebug() << "Object " << detection.object_id << "->\n\tconf: " << detection.confidence <<
-                                "\n\tframe: " << detection.frame_idx << "\n\ttime:" << detection.timestamp <<
-                                "\n\trect.x: " << detection.rect.x << "\n\trect.y: " << detection.rect.y <<
-                                "\n\trect.width: " << detection.rect.width << "\n\theght: " <<
-                                detection.rect.height << std::endl;*/
                     
                     // Finding out person center and the zone which belongs to
                     double x_center = ((double) detection.rect.x + ((double) detection.rect.width/2));
