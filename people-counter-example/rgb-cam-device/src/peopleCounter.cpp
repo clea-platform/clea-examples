@@ -355,7 +355,8 @@ void PeopleCounter::people_counter_function () {
 
             frames_processed++;
             
-            cv::imshow("dbg", frame);
+            if (m_settings.value("AppSettings/displayVideo").toBool())
+                cv::imshow("dbg", frame);
             char k  = cv::waitKey(5);
             
             frame   = m_img_source->read();
