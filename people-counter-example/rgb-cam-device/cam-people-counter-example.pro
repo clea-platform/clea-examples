@@ -1,5 +1,8 @@
-TEMPLATE = app
+QT += core websockets
+QT -= gui
 TARGET = cam-people-counter-example
+TEMPLATE = app
+CONFIG += console c++11
 
 MOC_DIR     = build/moc
 OBJECTS_DIR = build/obj
@@ -12,8 +15,6 @@ INCLUDEPATH += include \
                 /opt/intel/openvino_2021.4.689/deployment_tools/ngraph/include \
                 /opt/intel/openvino_2021.4.689/opencv/include
 
-CONFIG += console c++11
-QT -= gui
 
 LIBS += -L/opt/intel/openvino_2021.4.689/opencv/lib \
         -L/opt/intel/openvino_2021.4.689/inference_engine/lib/intel64 \
@@ -26,12 +27,17 @@ LIBS += -L/opt/intel/openvino_2021.4.689/opencv/lib \
         -lopencv_videoio \
         -lopencv_highgui \
         -lopencv_imgcodecs \
-        -linference_engine
+        -linference_engine \
+        -lwfrest \
+        -lz \
+        -lworkflow
 
-HEADERS += include/peopleCounter.hpp
+HEADERS += include/peopleCounter.hpp \
+            include/streamingServer.hpp
 
 SOURCES += src/main.cpp \
             src/peopleCounter.cpp \
+            src/streamingServer.cpp \
             src/polygon.cpp \
             src/cnn.cpp \
             src/detector.cpp \
