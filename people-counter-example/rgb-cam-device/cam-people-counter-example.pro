@@ -34,7 +34,8 @@ LIBS += -L/opt/intel/openvino_2021.4.689/opencv/lib \
 
 HEADERS += include/peopleCounter.hpp \
             include/streamingServer.hpp \
-            include/commons.hpp
+            include/commons.hpp \
+            include/base64.hpp
 
 SOURCES += src/main.cpp \
             src/peopleCounter.cpp \
@@ -50,4 +51,5 @@ SOURCES += src/main.cpp \
             src/monitors/cpu_monitor.cpp \
             src/monitors/presenter.cpp \
             src/utils/images_capture.cpp \
-            src/utils/performance_metrics.cpp
+            src/utils/performance_metrics.cpp \
+            src/base64.cpp
