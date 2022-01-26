@@ -1,7 +1,5 @@
 
-#include "peopleCounter.hpp"
-
-#include <AstarteDeviceSDK.h>
+#include <peopleCounter.hpp>
 
 #include <HemeraCore/Operation>
 #include <monitors/presenter.h>
@@ -26,7 +24,8 @@ PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture
                                 QObject *parent)
                                 : QObject(parent), m_still_continue(true), m_settings (settings),
                                 m_astarte_sdk(nullptr), m_publish_timer(new QTimer(this)),
-                                m_img_source(img_source), m_detector(detector), m_tracker(tracker) {
+                                m_img_source(img_source), m_detector(detector), m_tracker(tracker),
+                                m_streaming_server(nullptr) {
     
     // Setting up scene settings
     QFile scene_settings_file (m_settings.value ("AppSettings/sceneSettingsFile").toString());
@@ -54,6 +53,13 @@ PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture
 	}
 	QJsonObject json_scene  = json_document.object();
     load_scene (json_scene);
+
+    // Building StreamingServer
+    m_streaming_server  = std::unique_ptr<StreamingServer> (new StreamingServer (
+                                                            m_settings.value ("AppSettings/httpPort").toInt(),
+                                                            m_settings.value ("AppSettings/wsPort").toInt(),
+                                                            m_settings.value ("AppSettings/httpServerDirectory").toString(),
+                                                            this));
 
     // Setting up "m_publish_timer"
     m_publish_timer->setInterval(m_settings.value ("DeviceSettings/publishInterval").toInt());
@@ -109,6 +115,7 @@ void PeopleCounter::load_scene (QJsonObject &json_scene) {
 
 
 void PeopleCounter::start_computation () {
+    m_streaming_server->start();
     m_people_counter_thread.start();
     m_publish_timer->start();
 }
@@ -119,7 +126,9 @@ void PeopleCounter::start_computation () {
 void PeopleCounter::stop () {
     m_still_continue    = false;
     m_publish_timer->stop ();
-    
+
+    m_streaming_server->stop();
+
     if (m_people_counter_thread.isRunning())
         m_people_counter_thread.exit();
 }
@@ -357,7 +366,10 @@ void PeopleCounter::people_counter_function () {
             
             if (m_settings.value("AppSettings/displayVideo").toBool())
                 cv::imshow("dbg", frame);
-            char k  = cv::waitKey(5);
+            if (frames_processed%4 == 0)   // FIXME
+                m_streaming_server->dispatch_frame(frame, current_detections);
+            
+            cv::waitKey(5);
             
             frame   = m_img_source->read();
             if (!frame.data) {

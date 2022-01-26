@@ -1,7 +1,6 @@
 
 #pragma once
 
-
 #include <QtCore/QObject>
 #include <QtCore/QSettings>
 #include <QtCore/QThread>
@@ -10,6 +9,8 @@
 #include <hemeraoperation.h>
 #include <AstarteDeviceSDK.h>
 
+#include <commons.hpp>
+#include <streamingServer.hpp>
 #include <polygon.hpp>
 #include <tracker.hpp>
 #include <detector.hpp>
@@ -44,17 +45,6 @@ private slots:
     void people_counter_function ();
 
 private:
-    using DetectedPerson    = struct {
-        uint person_id;
-        double confidence;
-        uint zone_id;
-        QString zone_name;
-    };
-    using Detections        = struct {
-        uint ms_timestamp;
-        QList<DetectedPerson> detections;
-    };
-
 
     void start_computation ();
 
@@ -77,4 +67,6 @@ private:
     std::unique_ptr<ImagesCapture> &m_img_source;
     ObjectDetector &m_detector;
     std::unique_ptr<PedestrianTracker> &m_tracker;
+
+    StreamingServer_ptr m_streaming_server;
 };

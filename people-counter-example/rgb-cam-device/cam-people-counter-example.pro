@@ -2,7 +2,7 @@ QT += core websockets
 QT -= gui
 TARGET = cam-people-counter-example
 TEMPLATE = app
-CONFIG += console c++11
+CONFIG += console c++14
 
 MOC_DIR     = build/moc
 OBJECTS_DIR = build/obj
@@ -33,7 +33,8 @@ LIBS += -L/opt/intel/openvino_2021.4.689/opencv/lib \
         -lworkflow
 
 HEADERS += include/peopleCounter.hpp \
-            include/streamingServer.hpp
+            include/streamingServer.hpp \
+            include/commons.hpp
 
 SOURCES += src/main.cpp \
             src/peopleCounter.cpp \
