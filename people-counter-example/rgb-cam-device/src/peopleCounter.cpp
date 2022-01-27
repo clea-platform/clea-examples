@@ -56,6 +56,7 @@ PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture
 
     // Building StreamingServer
     m_streaming_server  = std::unique_ptr<StreamingServer> (new StreamingServer (
+                                                            m_scene,
                                                             m_settings.value ("AppSettings/httpPort").toInt(),
                                                             m_settings.value ("AppSettings/wsPort").toInt(),
                                                             m_settings.value ("AppSettings/httpServerDirectory").toString(),
@@ -115,6 +116,7 @@ void PeopleCounter::load_scene (QJsonObject &json_scene) {
 
 
 void PeopleCounter::start_computation () {
+    // TODO Sending scene setings to Astarte platform
     m_streaming_server->start();
     m_people_counter_thread.start();
     m_publish_timer->start();

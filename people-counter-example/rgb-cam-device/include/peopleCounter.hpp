@@ -11,7 +11,6 @@
 
 #include <commons.hpp>
 #include <streamingServer.hpp>
-#include <polygon.hpp>
 #include <tracker.hpp>
 #include <detector.hpp>
 #include <utils/images_capture.h>
@@ -19,9 +18,6 @@
 #include <memory>
 #include <mutex>
 #include <condition_variable>
-
-
-using Scene = std::vector<Polygon>;
 
 
 class PeopleCounter : public QObject {
