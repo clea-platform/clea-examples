@@ -1,0 +1,35 @@
+{
+    "interface_name": "ai.clea.examples.SceneSettings",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "properties",
+    "ownership": "device",
+    "mappings": [
+        {
+            "endpoint": "/cameras_ids",
+            "type": "integerarray",
+            "reliability":"unique",
+            "retention":"volatile",
+            "expiry":60
+        },
+        {
+            "endpoint": "/%{camera_id}/zones",
+            "type": "stringarray",
+            "reliability":"unique",
+            "retention":"volatile",
+            "expiry":60
+        }
+        /* Array element:
+            {
+                "zone_id"   : #,
+                "zone_name" : "",
+                "vertices"  : [
+                    {"x":#, "y":#},
+                    {"x":#, "y":#},
+                    {"x":#, "y":#},
+                    {"x":#, "y":#}
+                ]
+            }
+        */
+    ]
+}

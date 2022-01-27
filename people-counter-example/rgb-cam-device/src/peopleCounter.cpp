@@ -196,7 +196,7 @@ void PeopleCounter::send_values() {
     }
     
     // Actually sending data to Astarte
-    bool sent_result    = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/interfaceName").toByteArray(),
+    bool sent_result    = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/peopleCounterInterfaceName").toByteArray(),
                                                     payload, QDateTime::currentDateTime());
     if (!sent_result) {
         qWarning() << "Send operation reports an error!";
@@ -209,8 +209,7 @@ void PeopleCounter::send_values() {
 
 
 void PeopleCounter::handleIncomingData(const QByteArray &interface, const QByteArray &path, const QVariant &value) {
-    // TODO
-    qDebug() << "Received data, interface: " << interface << "path: " << path << ", value: " << value << ", Qt type name: " << value.typeName();
+    // No data is expected to be received from Astarte platform
 }
 
 
