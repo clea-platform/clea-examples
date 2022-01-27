@@ -5,6 +5,5 @@ astarte_persistence.d
 astarte-device-sdk-qt5
 
 # people-counter-example application
-people-counter-example/rgb-cam-device/cam-people-counter-example
-cam-people-counter-example/.qmake.stash
+people-counter-example/rgb-cam-device/rgb-cam-people-counter-example
 .qmake.stash

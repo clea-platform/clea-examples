@@ -1,6 +1,6 @@
 QT += core websockets
 QT -= gui
-TARGET = cam-people-counter-example
+TARGET = rgb-cam-people-counter-example
 TEMPLATE = app
 CONFIG += console c++14
 
