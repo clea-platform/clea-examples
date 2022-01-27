@@ -10,7 +10,9 @@
 
 
 
-StreamingServer::StreamingServer (uint http_port, uint ws_port, QString http_root_dir, QObject *parent) :
+StreamingServer::StreamingServer (Scene &scene_settings, uint http_port, uint ws_port,
+                                    QString http_root_dir, QObject *parent) :
+                                                                                    m_scene_settings (scene_settings),
                                                                                     m_ws_port (ws_port),
                                                                                     m_ws_server (nullptr),
                                                                                     m_http_port (http_port),
@@ -134,8 +136,21 @@ void StreamingServer::on_new_connection () {
     if (client_socket) {
         std::unique_lock<std::mutex> clients_lock (m_ws_clients_mutex);
         m_ws_clients << client_socket;
-        QString hello   = "Hello client!";
-        client_socket->sendTextMessage(hello);
+
+        // Sending scene list to new client
+        QVariantHash variant_msg;
+        QVariantList variant_settings;
+        variant_msg["message-type"] = "scene-settings";
+        for (auto &zone : m_scene_settings) {
+            QVariantHash variant_item;
+            variant_item["zone_name"]   = zone.get_zone_name();
+            variant_item["zone_id"]     = zone.get_zone_id();
+            variant_settings.push_back (variant_item);
+        }
+        variant_msg["scene-settings"]   = variant_settings;
+        QString str_msg                 = QJsonDocument(QJsonObject::fromVariantHash (variant_msg)).
+                                            toJson(QJsonDocument::Compact);
+        client_socket->sendTextMessage(str_msg);
     }
 }
 

@@ -19,7 +19,7 @@ class StreamingServer : public QObject {
     Q_OBJECT
 
 public:
-    StreamingServer (uint http_port, uint ws_port, QString http_root_dir, QObject *parent=nullptr);
+    StreamingServer (Scene &scene_settings, uint http_port, uint ws_port, QString http_root_dir, QObject *parent=nullptr);
     ~StreamingServer ();
 
     void start();
@@ -33,6 +33,8 @@ private slots:
 
 
 private :
+    Scene &m_scene_settings;
+
     uint m_ws_port;
     std::unique_ptr<QWebSocketServer> m_ws_server;
     QList<QWebSocket *> m_ws_clients;

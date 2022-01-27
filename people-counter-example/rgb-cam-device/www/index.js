@@ -1,49 +1,54 @@
 
-let wsUri       = "ws://localhost:8081"
+let wsUri       = `ws://${location.hostname}:8081`
 let websocket   = undefined
+let zones       = {}                        // array item: #id : {name, html_div, counter}
 
 
 let handleMessage   = (evt) => {
-    //console.log (evt.data);
-    let jData   = JSON.parse (evt.data);
-    //console.log (jData.data)
+    let get_zone_id = (zone_id) => {
+        return `${zone_id}-area-counter`
+    }
+
+    let jData       = JSON.parse (evt.data);
+
 
     if (jData["message-type"] == "scene-settings") {
-        // TODO Updating scene-settings
-    }
-    else if (jData["message-type"] == "detections") {
-        // FIXME Handle possibility of having many zones
-        // Updating detections statistics
-        dp              = jData.data
-        b_area_count    = 0
-        c_area_count    = 0
-        d_area_count    = 0
-        w_area_count    = 0
-        for (let i in dp) {
-            let d   = dp[i]
-            console.log (d)
-            switch (d.pos_zone.id) {
-                case 0:
-                    d_area_count++;
-                    break;
-                case 1:
-                    c_area_count++;
-                    break;
-                case 2:
-                    b_area_count++;
-                    break;
-                case 3:
-                    w_area_count++;
-                    break;
-                default:
-                    console.error (`Undefined zone id: ${d.pos_zone.id}`)
+        // Updating zones list
+        let html_list   = $("#counters-list")
+
+        for (zone_idx in jData["scene-settings"]) {
+            let zone    = jData["scene-settings"][zone_idx]
+            html_list.append (`<li class="nav-item pt-2" id="${get_zone_id(zone["zone_id"])}"></li>`)
+            let item    = {
+                name        : zone["zone_name"],
+                html_div    : $(`#${get_zone_id(zone["zone_id"])}`),
+                counter     : 0
             }
+            item.html_div.text (`${item.name} area : ${item.counter}`)
+            zones[zone["zone_id"]]  = item
+        }
+    }
+
+    
+    else if (jData["message-type"] == "detections") {
+        // Updating detections statistics
+        let detected_people = jData.data
+
+        for (let i in zones) {
+            zones[i].counter   = 0;
+        }
+
+        for (let i in detected_people) {
+            let zone_id = detected_people[i].pos_zone.id
+            zones[zone_id].counter++
+        }
+
+        for (let i in zones) {
+            let item    = zones[i]
+            item.html_div.text (`${item.name} area : ${item.counter}`)
         }
         document.getElementById ("img-el").src                          = `data:image/jpg;base64, ${jData.img}`
-        document.getElementById ("blackboard-area-counter").innerHTML   = `Blackboard area : ${b_area_count}`
-        document.getElementById ("coffe-area-counter").innerHTML        = `Coffe area : ${c_area_count}`
-        document.getElementById ("desk-area-counter").innerHTML         = `Desk area : ${d_area_count}`
-        document.getElementById ("window-area-counter").innerHTML       = `Window area : ${w_area_count}`
+        $(`#global-counter`).text(`Detected People : ${detected_people.length}`)
     }
 }
 
