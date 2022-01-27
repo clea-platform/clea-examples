@@ -5,6 +5,11 @@
 #include <QString>
 #include <QList>
 
+#include <polygon.hpp>
+
+
+using Scene = std::vector<Polygon>;
+
 
 typedef struct {
     uint person_id;
