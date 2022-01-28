@@ -154,8 +154,9 @@ void PeopleCounter::start_computation () {
     /*qDebug() << "Sending:" << QJsonDocument(QJsonObject::fromVariantHash (v_payload)).
                                             toJson(QJsonDocument::Compact) << "\n\n\n";*/
     
-    // FIXME Actually sending scene settings
-    bool sent_result        = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/sceneSettingsInterfaceName").toByteArray(),
+    // Actually sending scene settings
+    // FIXME Data not handled correctly
+    /*bool sent_result        = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/sceneSettingsInterfaceName").toByteArray(),
                                                         v_payload);
     if (!sent_result) {
         qWarning() << "Send operation reports an error!\n\n";
