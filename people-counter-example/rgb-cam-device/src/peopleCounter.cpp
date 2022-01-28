@@ -14,6 +14,7 @@
 #include <climits>
 #include <iostream>
 #include <algorithm>
+#include <ctime>
 #include <math.h>
 
 #define ESC_KEY 27
@@ -216,10 +217,9 @@ void PeopleCounter::send_values() {
             
             // Building data to be sent to Astarte
             QList<QString> items;
-            // Building "items" list with detected people
-            // FIXME Remove "reading_timestamp" field from here and from interface definition
-            payload["/camera/reading_timestamp"]    = 0;
+            payload["/camera/reading_timestamp"]    = last_detection.ms_timestamp;
             payload["/camera/people_count"]         = last_detection.detections.count();
+            // Building "items" list with detected people
             for (auto &it : last_detection.detections) {
                 // item : {id, conf, pos_zone:{id, name}}
                 QJsonObject j_item;
@@ -365,7 +365,8 @@ void PeopleCounter::people_counter_function () {
 
             // Creating "current_detections" object which contains detected people in current frame
             Detections current_detections;
-            current_detections.ms_timestamp = cur_timestamp;
+            current_detections.ms_timestamp = duration_cast<std::chrono::milliseconds>(system_clock::now()
+                                                .time_since_epoch()).count();
 
             {
                 // Taking mutex for "detections_list" shared object
