@@ -149,19 +149,15 @@ void PeopleCounter::start_computation () {
     }
 
     QVariantHash v_payload;
-    v_payload["/scene_zones"]   = QVariant(scene_settings);
-
-    /*qDebug() << "Sending:" << QJsonDocument(QJsonObject::fromVariantHash (v_payload)).
-                                            toJson(QJsonDocument::Compact) << "\n\n\n";*/
+    v_payload["/"]   = QVariant(scene_settings);
     
     // Actually sending scene settings
-    // FIXME Data not handled correctly
-    /*bool sent_result        = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/sceneSettingsInterfaceName").toByteArray(),
-                                                        v_payload);
+    bool sent_result        = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/sceneSettingsInterfaceName").toByteArray(),
+                                                        "/scene_zones", scene_settings);
     if (!sent_result) {
         qWarning() << "Send operation reports an error!\n\n";
         throw std::runtime_error("Cannot send scene settigns to astarte platform");
-    }//*/
+    }
     
     m_streaming_server->start();
     m_people_counter_thread.start();
