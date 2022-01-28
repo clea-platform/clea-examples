@@ -116,7 +116,52 @@ void PeopleCounter::load_scene (QJsonObject &json_scene) {
 
 
 void PeopleCounter::start_computation () {
-    // TODO Sending scene setings to Astarte platform
+    /* Array element:
+        {
+            "zone_id"   : #,
+            "zone_name" : "",
+            "vertices"  : [
+                {"x":#, "y":#},
+                {"x":#, "y":#},
+                {"x":#, "y":#},
+                {"x":#, "y":#}
+            ]
+        }
+    */
+
+    // Building scene settings for Astarte platform
+    QList<QString> scene_settings;
+    for (auto &zone : m_scene) {
+        QVariantHash v_zone_item;
+        QVariantList vertices_list   = QVariantList();
+        for (auto &v : zone.get_vertices()) {
+            QVariantHash v_item;
+            v_item["x"] = v.x;
+            v_item["y"] = v.y;
+            vertices_list.push_back (v_item);
+        }
+        v_zone_item["vertices"]     = vertices_list;
+        v_zone_item["zone_name"]    = zone.get_zone_name();
+        v_zone_item["zone_id"]      = zone.get_zone_id();
+        QString str_item            = QJsonDocument(QJsonObject::fromVariantHash (v_zone_item)).
+                                            toJson(QJsonDocument::Compact);
+        scene_settings.push_back (str_item);
+    }
+
+    QVariantHash v_payload;
+    v_payload["/scene_zones"]   = QVariant(scene_settings);
+
+    /*qDebug() << "Sending:" << QJsonDocument(QJsonObject::fromVariantHash (v_payload)).
+                                            toJson(QJsonDocument::Compact) << "\n\n\n";*/
+    
+    // FIXME Actually sending scene settings
+    bool sent_result        = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/sceneSettingsInterfaceName").toByteArray(),
+                                                        v_payload);
+    if (!sent_result) {
+        qWarning() << "Send operation reports an error!\n\n";
+        throw std::runtime_error("Cannot send scene settigns to astarte platform");
+    }//*/
+    
     m_streaming_server->start();
     m_people_counter_thread.start();
     m_publish_timer->start();
@@ -175,8 +220,9 @@ void PeopleCounter::send_values() {
             // Building data to be sent to Astarte
             QList<QString> items;
             // Building "items" list with detected people
-            payload["/1/reading_timestamp"]    = last_detection.ms_timestamp;
-            payload["/1/people_count"]         = last_detection.detections.count();
+            // FIXME Remove "reading_timestamp" field from here and from interface definition
+            payload["/camera/reading_timestamp"]    = 0;
+            payload["/camera/people_count"]         = last_detection.detections.count();
             for (auto &it : last_detection.detections) {
                 // item : {id, conf, pos_zone:{id, name}}
                 QJsonObject j_item;
@@ -189,7 +235,7 @@ void PeopleCounter::send_values() {
                 QString s_item  = QJsonDocument(j_item).toJson(QJsonDocument::Compact);
                 items.push_back (s_item);
             }
-            payload["/1/people"]    = QVariant(items);
+            payload["/camera/people"]    = QVariant(items);
 
             m_detections_list.clear();
         }
@@ -200,7 +246,7 @@ void PeopleCounter::send_values() {
                                                     payload, QDateTime::currentDateTime());
     if (!sent_result) {
         qWarning() << "Send operation reports an error!";
-    }
+    }//*/
 
     return ;
 }
@@ -367,7 +413,7 @@ void PeopleCounter::people_counter_function () {
             
             if (m_settings.value("AppSettings/displayVideo").toBool())
                 cv::imshow("dbg", frame);
-            if (frames_processed%4 == 0)   // FIXME
+            if (frames_processed%4 == 0)   // FIXME Make frame frequency customizable
                 m_streaming_server->dispatch_frame(frame, current_detections);
             
             cv::waitKey(5);
