@@ -10,7 +10,7 @@ UI_DIR      = build/ui
 RCC_DIR     = build/
 
 INCLUDEPATH += include \
-                /usr/local/include/AstarteDeviceSDKQt5 \
+                /usr/include/AstarteDeviceSDKQt5 \
                 /opt/intel/openvino_2021.4.689/deployment_tools/inference_engine/include \
                 /opt/intel/openvino_2021.4.689/deployment_tools/ngraph/include \
                 /opt/intel/openvino_2021.4.689/opencv/include
