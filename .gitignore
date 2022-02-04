@@ -1,7 +1,7 @@
 *build
 .vscode
 Makefile
-astarte_persistence.d
+astarte_persistency.d
 astarte-device-sdk-qt5
 
 # people-counter-example application
