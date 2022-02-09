@@ -23,8 +23,8 @@
 PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture> &img_source,
                                 ObjectDetector &detector, std::unique_ptr<PedestrianTracker> &tracker,
                                 QObject *parent)
-                                : QObject(parent), m_still_continue(true), m_settings (settings),
-                                m_astarte_sdk(nullptr), m_publish_timer(new QTimer(this)),
+                                : QObject(parent), m_settings (settings), m_astarte_sdk(nullptr),
+                                m_still_continue(true), m_publish_timer(new QTimer(this)),
                                 m_img_source(img_source), m_detector(detector), m_tracker(tracker),
                                 m_streaming_server(nullptr) {
     
