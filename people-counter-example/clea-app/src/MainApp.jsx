@@ -15,7 +15,7 @@ let last_query_date             = undefined;
 
 
 
-export const MainApp = ({ sceneSettings, astarteClient, deviceId }) => {
+export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId }) => {
     const chartRef              = React.useRef(null);
     const [isReady, setIsReady] = React.useState(false);
     const [viz, setViz]         = React.useState({ width: 550, height: 350, data: [] });        // Right part: graph
@@ -114,7 +114,7 @@ export const MainApp = ({ sceneSettings, astarteClient, deviceId }) => {
                             update_viz_and_stats (data)
                         })
                     }
-                }, 2000);
+                }, updateInterval);
             })
 
             return () => {
@@ -124,7 +124,7 @@ export const MainApp = ({ sceneSettings, astarteClient, deviceId }) => {
                 mount = false;
             }
         }
-    }, [sceneSettings, deviceId, astarteClient]);
+    }, [sceneSettings, updateInterval, deviceId, astarteClient]);
 
 
     React.useEffect(() => {
@@ -222,7 +222,7 @@ async function getData(deviceId, astarteClient, limit, since) {
             return data;
         })
         .catch(() => {
-            return {people:[], people_count:0, reading_timestamp:undefined, timestamp:undefined};
+            return {people:[], people_count:0, timestamp:undefined};
         });
 }
 
