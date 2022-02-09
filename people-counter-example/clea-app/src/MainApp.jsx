@@ -21,7 +21,10 @@ export const MainApp = ({ sceneSettings, astarteClient, deviceId }) => {
     const [viz, setViz]         = React.useState({ width: 550, height: 350, data: [] });        // Right part: graph
     const [counter, setCounter] = React.useState({ total: 0, areas: default_areas });           // left part: counters
     
+
     const update_viz_and_stats  = (new_data) => {
+        let current_timestamp   = new Date().getTime()
+
         // Checking if there are information
         if (!new_data || new_data.length == 0) {
             console.warn ("Empty data")
@@ -34,6 +37,10 @@ export const MainApp = ({ sceneSettings, astarteClient, deviceId }) => {
                 historical_data_cache.push ({timestamp: d.timestamp, value:d.people_count})
             }
         })
+        // Removing too old data
+        let delta_time_limit    = HISTORICAL_MINUTES_LIMIT*60*1000
+        while (current_timestamp - new Date(historical_data_cache[0].timestamp).getTime() > delta_time_limit)
+            historical_data_cache.shift();
 
         // Updating counters with newest data
         let newest_data = new_data[new_data.length-1]
