@@ -1,13 +1,17 @@
 {
     "interface_name": "ai.clea.examples.SceneSettings",
     "version_major": 0,
-    "version_minor": 1,
+    "version_minor": 2,
     "type": "properties",
     "ownership": "device",
     "mappings": [
         {
-            "endpoint": "/scene_zones",
-            "type": "stringarray"
+            "endpoint"  : "/update_interval",
+            "type"      : "integer"
+        },
+        {
+            "endpoint"  : "/scene_zones",
+            "type"      : "stringarray"
         }
     ]
 }
