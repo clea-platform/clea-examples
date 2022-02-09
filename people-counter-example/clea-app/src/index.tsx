@@ -32,6 +32,7 @@ type Settings = {
 
 const App = ({ astarteUrl, realm, token, deviceId }: AppProps) => {
     const [sceneSettings, setSceneSettings] = useState<Object[]>([]);
+    const [updateInterval, setUpdateInterval] = useState<Number>();
 
     const astarteClient = useMemo(() => {
         return new AstarteClient({ astarteUrl, realm, token });
@@ -47,6 +48,11 @@ const App = ({ astarteUrl, realm, token, deviceId }: AppProps) => {
                     .then((data) => {
                         if (mount) {
                             setSceneSettings(data);
+                            astarteClient
+                                .getUpdateInterval({ deviceId })
+                                .then ((data) => {
+                                    setUpdateInterval(data)
+                                })
                         }
                     })
                     .catch(() => {
@@ -65,7 +71,8 @@ const App = ({ astarteUrl, realm, token, deviceId }: AppProps) => {
 
     return (
         <Fragment>
-            <MainApp sceneSettings={sceneSettings} astarteClient={astarteClient} deviceId={deviceId} />
+            <MainApp sceneSettings={sceneSettings} updateInterval={updateInterval}
+                        astarteClient={astarteClient} deviceId={deviceId} />
         </Fragment>
     );
 };
