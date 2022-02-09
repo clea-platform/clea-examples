@@ -59,6 +59,26 @@ class AstarteClient {
 
 
 
+    async getUpdateInterval ({deviceId}: {deviceId: string}) {
+        const {appEngineUrl, realm, token}  = this.config;
+        const interfaceName                 = "ai.clea.examples.SceneSettings";
+        const path                          = `appengine/v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}`;
+        const requestUrl                    = new URL(path, appEngineUrl);
+        
+        return axios ({
+            method  : "get",
+            url     : requestUrl.toString(),
+            headers : {
+                "Authorization" : `Bearer ${token}`,
+                "Content-Type"  : "application/json;charset=UTF-8",
+            }
+        }).then ((response) => {
+            return response.data.data["update_interval"]
+        })
+    }
+
+
+
     async getCameraData({deviceId, sinceAfter, since, to, limit}: CameraDataParameters) {
         const { appEngineUrl, realm, token } = this.config;
         const interfaceName = "ai.clea.examples.PeopleCounter";
