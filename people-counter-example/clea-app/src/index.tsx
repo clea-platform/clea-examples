@@ -51,7 +51,6 @@ const App = ({ astarteUrl, realm, token, deviceId }: AppProps) => {
                             astarteClient
                                 .getUpdateInterval({ deviceId })
                                 .then ((data) => {
-                                    console.log (`data: ${data}`)
                                     setUpdateInterval(data)
                                 })
                         }

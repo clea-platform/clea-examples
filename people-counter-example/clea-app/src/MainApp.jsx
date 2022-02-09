@@ -39,8 +39,9 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
         })
         // Removing too old data
         let delta_time_limit    = HISTORICAL_MINUTES_LIMIT*60*1000
-        while (current_timestamp - new Date(historical_data_cache[0].timestamp).getTime() > delta_time_limit)
+        while (current_timestamp - new Date(historical_data_cache[0].timestamp).getTime() > delta_time_limit) {
             historical_data_cache.shift();
+        }
 
         // Updating counters with newest data
         let newest_data = new_data[new_data.length-1]
@@ -52,8 +53,8 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
             let new_viz = {
                 width   : getChartWidth(),
                 height  : viz.height,
-                data    : historical_data_cache.map ((d) => {
-                    return {timestamp: d.timestamp, value:d.value}
+                data    : _.map (historical_data_cache, (h) => {
+                    return h
                 })
             }
             
@@ -93,7 +94,10 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
 
             getData (deviceId, astarteClient, undefined, recent_data_since)
             .then ((data) => {
-
+            
+                if (historical_data_cache.length != 0)
+                    data    = []
+                
                 // Updating chart with recent data
                 update_viz_and_stats (data)
                 
@@ -107,7 +111,6 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
                             last_query_date         = new Date();
                             
                             if (!data || data.length==0) {
-                                console.log ("Returning..")
                                 return;
                             }
 
@@ -118,9 +121,10 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
             })
 
             return () => {
-                console.log ("CLEARING ")
-                if (interval_id)
+                if (interval_id) {
+                    console.warn ("Clearing interval...")
                     clearInterval(interval_id);
+                }
                 mount = false;
             }
         }
@@ -215,14 +219,13 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
     ===================================== */
 
 async function getData(deviceId, astarteClient, limit, since) {
-    
     return astarteClient
         .getCameraData({ deviceId, limit, since})
         .then((data) => {
             return data;
         })
         .catch(() => {
-            return {people:[], people_count:0, timestamp:undefined};
+            return undefined;
         });
 }
 
