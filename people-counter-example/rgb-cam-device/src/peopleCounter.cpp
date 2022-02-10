@@ -23,8 +23,8 @@
 PeopleCounter::PeopleCounter (QSettings &settings, std::unique_ptr<ImagesCapture> &img_source,
                                 ObjectDetector &detector, std::unique_ptr<PedestrianTracker> &tracker,
                                 QObject *parent)
-                                : QObject(parent), m_still_continue(true), m_settings (settings),
-                                m_astarte_sdk(nullptr), m_publish_timer(new QTimer(this)),
+                                : QObject(parent), m_settings (settings), m_astarte_sdk(nullptr),
+                                m_still_continue(true), m_publish_timer(new QTimer(this)),
                                 m_img_source(img_source), m_detector(detector), m_tracker(tracker),
                                 m_streaming_server(nullptr) {
     
@@ -149,15 +149,25 @@ void PeopleCounter::start_computation () {
         scene_settings.push_back (str_item);
     }
 
+    bool sent_result    = false;
     QVariantHash v_payload;
-    v_payload["/"]   = QVariant(scene_settings);
+    v_payload["/"]      = QVariant(scene_settings);
     
     // Actually sending scene settings
-    bool sent_result        = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/sceneSettingsInterfaceName").toByteArray(),
+    sent_result         = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/sceneSettingsInterfaceName").toByteArray(),
                                                         "/scene_zones", scene_settings);
     if (!sent_result) {
-        qWarning() << "Send operation reports an error!\n\n";
+        qWarning() << "Send operation for 'scene_zones' mapping reports an error!\n\n";
         throw std::runtime_error("Cannot send scene settigns to astarte platform");
+    }
+
+    // Actually sending update interval
+    QVariant update_interval    = m_settings.value ("DeviceSettings/publishInterval").toInt();
+    sent_result                 = m_astarte_sdk->sendData (m_settings.value("DeviceSettings/sceneSettingsInterfaceName").toByteArray(),
+                                                        "/update_interval", update_interval);
+    if (!sent_result) {
+        qWarning() << "Send operation for 'update_interval' mapping reports an error!\n\n";
+        throw std::runtime_error("Cannot send update interval to astarte platform");
     }
     
     m_streaming_server->start();
@@ -217,7 +227,6 @@ void PeopleCounter::send_values() {
             
             // Building data to be sent to Astarte
             QList<QString> items;
-            payload["/camera/reading_timestamp"]    = last_detection.ms_timestamp;
             payload["/camera/people_count"]         = last_detection.detections.count();
             // Building "items" list with detected people
             for (auto &it : last_detection.detections) {

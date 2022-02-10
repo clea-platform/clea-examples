@@ -7,15 +7,6 @@
     "aggregation": "object",
     "mappings": [
         {
-            "endpoint": "/camera/reading_timestamp",
-            "type": "integer",
-            "reliability":"unique",
-            "retention":"volatile",
-            "expiry":60,
-            "database_retention_policy": "use_ttl",
-            "database_retention_ttl": 28800
-        },
-        {
             "endpoint": "/camera/people_count",
             "type": "integer",
             "reliability":"unique",

@@ -15,91 +15,99 @@ import chartsStyle from "../node_modules/apexcharts/dist/apexcharts.css";
 
 import { MainApp } from "./MainApp";
 
-const messages = { en, it };
-const { useEffect, useMemo, useState } = React;
+const messages                          = { en, it };
+const { useEffect, useMemo, useState }  = React;
 
 type AppProps = {
-  astarteUrl: URL;
-  realm: string;
-  token: string;
-  deviceId: string;
+    astarteUrl: URL;
+    realm: string;
+    token: string;
+    deviceId: string;
 };
 
 type Settings = {
-  themeUrl: string;
-  userPreferences: UserPreferences;
+    themeUrl: string;
+    userPreferences: UserPreferences;
 }
 
 const App = ({ astarteUrl, realm, token, deviceId }: AppProps) => {
-  const [cameras, setCameras] = useState<string[]>([]);
+    const [sceneSettings, setSceneSettings] = useState<Object[]>([]);
+    const [updateInterval, setUpdateInterval] = useState<Number>();
 
-  const astarteClient = useMemo(() => {
-    return new AstarteClient({ astarteUrl, realm, token });
-  }, [astarteUrl, realm, token]);
- 
-  useEffect(() => {
-    if(cameras.length == 0){
-      let mount = true;
-      const intervalID = setInterval(() => {
-        astarteClient
-          .getCameras({ deviceId })
-          .then((data) => {
-            if (mount){
-              setCameras(data);
+    const astarteClient = useMemo(() => {
+        return new AstarteClient({ astarteUrl, realm, token });
+    }, [astarteUrl, realm, token]);
+
+
+    useEffect(() => {
+        if (sceneSettings.length == 0) {
+            let mount = true;
+            const intervalID = setInterval(() => {
+                astarteClient
+                    .getSceneSettings({ deviceId })
+                    .then((data) => {
+                        if (mount) {
+                            setSceneSettings(data);
+                            astarteClient
+                                .getUpdateInterval({ deviceId })
+                                .then ((data) => {
+                                    setUpdateInterval(data)
+                                })
+                        }
+                    })
+                    .catch(() => {
+                        if (mount) {
+                            setSceneSettings([]);
+                        }
+                    });
+            }, 100);
+
+            return () => {
+                clearInterval(intervalID);
+                mount = false;
             }
-          })
-          .catch(() => {
-            if (mount){
-              setCameras([]);
-            }
-          });
-      }, 5000);
+        }
+    }, [sceneSettings]);
 
-      return () => {
-        clearInterval(intervalID);
-        mount = false;
-      }
-    }
-  },[cameras]);
-
-  return (
-    <Fragment>
-      <MainApp cameras={cameras} astarteClient={astarteClient} deviceId={deviceId} />
-    </Fragment>
-  );
+    return (
+        <Fragment>
+            <MainApp sceneSettings={sceneSettings} updateInterval={updateInterval}
+                        astarteClient={astarteClient} deviceId={deviceId} />
+        </Fragment>
+    );
 };
 
 type UserPreferences = {
-  language: "en" | "it";
+    language: "en" | "it";
 };
 
 const AppLifecycle = {
-  mount: (
-    container: ShadowRoot,
-    appProps: AppProps,
-    settings: Settings
-  ) => {
-    const { themeUrl, userPreferences } = settings;
-    const { language } = userPreferences;
+    mount: (
+        container: ShadowRoot,
+        appProps: AppProps,
+        settings: Settings
+    ) => {
+        const { themeUrl, userPreferences } = settings;
+        const { language } = userPreferences;
 
-    ReactDOM.render(
-      <>
-        <link href={themeUrl} type="text/css" rel="stylesheet" />
-        <style>{chartsStyle.toString()}</style>
-        <style>{appStyle.toString()}</style>
-        <IntlProvider
-          messages={messages[language]}
-          locale={language}
-          defaultLocale="en"
-        >
-          <App {...appProps} />
-        </IntlProvider>
-      </>,
-      container
-    );
-  },
-  unmount: (container: ShadowRoot) =>
-    ReactDOM.unmountComponentAtNode(container),
+        ReactDOM.render(
+            <>
+                <link href={themeUrl} type="text/css" rel="stylesheet" />
+                <style>{chartsStyle.toString()}</style>
+                <style>{appStyle.toString()}</style>
+                <IntlProvider
+                    messages={messages[language]}
+                    locale={language}
+                    defaultLocale="en"
+                >
+                    <App {...appProps} />
+                </IntlProvider>
+            </>,
+            container
+        );
+    },
+    unmount: (container: ShadowRoot) =>
+        ReactDOM.unmountComponentAtNode(container),
 };
 
 export default AppLifecycle;

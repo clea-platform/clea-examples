@@ -12,12 +12,12 @@
 
 StreamingServer::StreamingServer (Scene &scene_settings, uint http_port, uint ws_port,
                                     QString http_root_dir, QObject *parent) :
-                                                                                    m_scene_settings (scene_settings),
-                                                                                    m_ws_port (ws_port),
-                                                                                    m_ws_server (nullptr),
-                                                                                    m_http_port (http_port),
-                                                                                    m_http_root_dir (http_root_dir),
-                                                                                    QObject(parent) {
+                                                                                QObject(parent),
+                                                                                m_scene_settings (scene_settings),
+                                                                                m_ws_port (ws_port),
+                                                                                m_ws_server (nullptr),
+                                                                                m_http_port (http_port),
+                                                                                m_http_root_dir (http_root_dir) {
     // Registering http server routes
     m_http_server.Static ("/", m_http_root_dir.toStdString().c_str());
 
