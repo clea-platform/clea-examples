@@ -2,12 +2,12 @@
 import "core-js/stable"
 import "regenerator-runtime/runtime"
 import React, { Fragment } from "react";
-import { Col, Container, Card, Row } from "react-bootstrap";
+import { Button, Col, Container, Card, Row, InputGroup, FormControl } from "react-bootstrap";
 import { FormattedMessage } from "react-intl";
 import Chart from "react-apexcharts";
 import _, { now } from 'lodash';
 
-const HISTORICAL_MINUTES_LIMIT  = 5;
+let historical_data_size        = 5;            // minutes
 const default_areas             = [];           // item : {zone_count, zone_name, zone_id}
 let historical_data_cache       = [];           // item : {timestamp, value}
 let last_query_date             = undefined;
@@ -17,6 +17,7 @@ let last_query_date             = undefined;
 
 export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId }) => {
     const chartRef              = React.useRef(null);
+    const inputRef              = React.useRef(null);
     const [isReady, setIsReady] = React.useState(false);
     const [viz, setViz]         = React.useState({ width: 550, height: 350, data: [] });        // Right part: graph
     const [counter, setCounter] = React.useState({ total: 0, areas: default_areas });           // left part: counters
@@ -38,7 +39,7 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
             }
         })
         // Removing too old data
-        let delta_time_limit    = HISTORICAL_MINUTES_LIMIT*60*1000
+        let delta_time_limit    = historical_data_size*60*1000
         while (current_timestamp - new Date(historical_data_cache[0].timestamp).getTime() > delta_time_limit) {
             historical_data_cache.shift();
         }
@@ -72,6 +73,28 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
     }
 
 
+    const onHistoricalDataSizeUpdate    = (evt) => {
+        if (inputRef.current && inputRef.current.value && !Object.is(parseInt(inputRef.current.value), NaN)
+            && parseInt(inputRef.current.value) > 0) {
+            historical_data_size    = parseInt (inputRef.current.value)
+
+            let recent_data_since   = new Date();
+            recent_data_since.setMinutes(last_query_date.getMinutes() - historical_data_size);
+
+            getData (deviceId, astarteClient, undefined, recent_data_since)
+            .then ((data) => {
+
+                // Check performed to avoid strange rendering of chart
+                if (historical_data_cache.length != 0)
+                    historical_data_cache   = []
+                
+                // Updating chart with recent data
+                update_viz_and_stats (data)
+            })
+        }
+    }
+
+
     React.useEffect(() => {
         if (sceneSettings.length > 0) {
             
@@ -90,11 +113,12 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
 
             last_query_date         = new Date();
             let recent_data_since   = new Date();
-            recent_data_since.setMinutes(last_query_date.getMinutes() - HISTORICAL_MINUTES_LIMIT);
+            recent_data_since.setMinutes(last_query_date.getMinutes() - historical_data_size);
 
             getData (deviceId, astarteClient, undefined, recent_data_since)
             .then ((data) => {
             
+                // Check performed to avoid strange rendering of chart
                 if (historical_data_cache.length != 0)
                     data    = []
                 
@@ -197,6 +221,17 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
                     <Col sm={12} md={6}>
                         <Card className="chart-section rounded">
                             <Card.Body>
+                                
+                                <InputGroup className="mb-3">
+                                    <InputGroup.Text>Chart History Size</InputGroup.Text>
+                                    <FormControl aria-label="Minutes" /*value={HISTORICAL_MINUTES_LIMIT}*/
+                                                ref={inputRef}/>
+                                    <Button variant="outline-secondary" id="history-update-id"
+                                            onClick={onHistoricalDataSizeUpdate}>
+                                        Update
+                                    </Button>
+                                </InputGroup>
+                                
                                 <div className="chart-container" ref={chartRef}>
                                     <Fragment>
                                         <DataChart width={viz.width} height={viz.height} data={viz.data} />
