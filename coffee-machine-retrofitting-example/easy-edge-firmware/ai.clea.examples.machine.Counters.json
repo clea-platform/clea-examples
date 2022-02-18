@@ -1,0 +1,21 @@
+{
+  "interface_name": "ai.clea.examples.machine.Counters",
+  "version_major": 0,
+  "version_minor": 1,
+  "type": "datastream",
+  "ownership": "device",
+  "mappings": [
+    {
+      "endpoint": "/shortCoffee",
+      "type": "integer",
+      "database_retention_policy": "use_ttl",
+      "database_retention_ttl": 31536000
+    },
+    {
+      "endpoint": "/longCoffee",
+      "type": "integer",
+      "database_retention_policy": "use_ttl",
+      "database_retention_ttl": 31536000
+    }
+  ]
+}
