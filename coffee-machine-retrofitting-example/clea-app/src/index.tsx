@@ -37,7 +37,6 @@ type Settings = {
 const App = ({ astarte_url, realm, token, device_id }: AppProps) => {
 
     const astarte_client    = useMemo(() => {
-        console.log (`using this device: ${device_id}`)
         return new AstarteClient({ astarte_url, realm, token });
     }, [astarte_url, realm, token]);
 
