@@ -2,11 +2,16 @@
 import "core-js/stable"
 import "regenerator-runtime/runtime"
 import React, { Fragment } from "react";
+import {BsCalendarDate} from "react-icons/bs";
 import { Table, Button, ButtonGroup, ButtonToolbar, Col, Container, Card, Row, InputGroup,
             FormControl,  ToggleButton} from "react-bootstrap";
 import { FormattedMessage } from "react-intl";
 import Chart from "react-apexcharts";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import 'react-datepicker/dist/react-datepicker-cssmodules.css';
 import _, { now } from 'lodash';
+
 
 
 
@@ -28,6 +33,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
     const chart_ref                         = React.useRef(null);
     const [chart_desc, set_chart_desc]      = React.useState({data:[]/*, width:0, height:0*/})
     const [is_chart_ready, set_is_ready]    = React.useState(false);
+    const [search_date, set_search_date]    = React.useState(new Date())
     const [group_by, set_group_by]          = React.useState(0)     // Units, revenues
     const [filter_by, set_filter_by]        = React.useState(0)     // All, short, long
     const [time_period, set_time_period]    = React.useState(0)     // Day, week, month, year
@@ -38,8 +44,8 @@ export const MainApp = ({ astarte_client, device_id }) => {
         ],
         filter_by : [
             {name:"All", value:0},
-            {name:"Short", value:1},
-            {name:"Long", value:2},
+            {name:"Short Coffee", value:1},
+            {name:"Long Coffee", value:2},
         ],
         time_period : [
             {name:"Day", value:0},
@@ -50,14 +56,37 @@ export const MainApp = ({ astarte_client, device_id }) => {
     }
 
     const [trash_bin_status_card_style,
-            set_trash_bin_status_card_style]    = React.useState ("Primary")    // Primary, Danger
+            set_trash_bin_status_card_style]    = React.useState ("info")       // info, danger
     const [water_level_card_style,
-            set_water_level_card_style]         = React.useState ("Primary")    // Primary, Danger
+            set_water_level_card_style]         = React.useState ("info")       // info, danger
     const [total_beverages, set_beverages]      = React.useState (0)
     const [daily_revenue, set_revenue]          = React.useState (0)
     const [water_status, set_water]             = React.useState ("Normal")
     const [trash_bin_status, set_trash]         = React.useState ("Normal")
     const [overview_data, set_overview]         = React.useState ([])
+    const cards_descriptors                     = [
+        {
+            "value"         : total_beverages,
+            "bg"            : "info",
+            "description"   : "Served Beverages"
+        },
+        {
+            "value"         : daily_revenue,
+            "bg"            : "info",
+            "description"   : "Daily Revenue"
+        },
+        {
+            "value"         : water_status,
+            "bg"            : water_level_card_style,
+            "description"   : "Water Status"
+        },
+        {
+            "value"         : trash_bin_status,
+            "bg"            : trash_bin_status_card_style,
+            "description"   : "Trash Bin Status"
+        }
+        
+    ]
 
     const trash_bin_error_messages          = {
         "CONTAINER_OFF_ALARM_EVENT"     : "Normal",
@@ -80,7 +109,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
 
     // Function that allows you to update counters and overviews 
     const update_counters_and_overviews = async (new_data) => {
-        console.log (new_data)
+        //console.log (new_data)
 
         // Updating local counters
         if (new_data.short_coffee.length > 0 ) {
@@ -98,8 +127,11 @@ export const MainApp = ({ astarte_client, device_id }) => {
         let start_date  = new Date (today.getFullYear(), today.getMonth(), today.getDate (), 0, 0, 0, 0)
         let sc_data     = astarte_client.get_short_coffee_status ({device_id, since:start_date})
         let lc_data     = astarte_client.get_long_coffee_status ({device_id, since:start_date})
-        sc_data         = await sc_data
-        lc_data         = await lc_data
+        
+        try {sc_data   = await sc_data}
+        catch (err) {sc_data    = []}
+        try {lc_data    = await lc_data}
+        catch (err) {lc_data    = []}
 
         // Summing all arrays length to update 'total_beverages'
         set_beverages (() => {
@@ -108,33 +140,35 @@ export const MainApp = ({ astarte_client, device_id }) => {
         
         // Computing and updating daily_revenues
         set_revenue (() => {
-            let revenue = (((sc_data.at(-1).value-sc_data.at(0).value+1) * beverages_descriptors.short_coffee.revenue))
-                            + (((lc_data.at(-1).value-lc_data.at(0).value+1) * beverages_descriptors.long_coffee.revenue))
+            let revenue = 0
+            if (sc_data.length > 0)
+                revenue += (sc_data.at(-1).value-sc_data.at(0).value+1) * beverages_descriptors.short_coffee.revenue
+            if (lc_data.length > 0)
+                revenue += (lc_data.at(-1).value-lc_data.at(0).value+1) * beverages_descriptors.long_coffee.revenue
             return Number (revenue.toFixed(2))
         })
         
         
         // Updating trash bin container card
         set_trash (trash_bin_error_messages[new_data.container_status[0].value])
-        console.log (trash_bin_status_card_style)
         if (new_data.container_status[0].value == "CONTAINER_OFF_ALARM_EVENT") {
             // No alarm
-            set_trash_bin_status_card_style (() => {return "Primary"})
+            set_trash_bin_status_card_style (() => {return "info"})
         }
         else {
             // Alarm from trash bin container
-            set_trash_bin_status_card_style (() => {return "Danger"})
+            set_trash_bin_status_card_style (() => {return "danger"})
         }
         
         // Updatng water level card
         set_water (water_level_error_messages[new_data.water_status[0].value])
         if (new_data.water_status[0].value == "WATER_OFF_ALARM_EVENT") {
             // No alarm
-            set_water_level_card_style (() => {return "Primary"})
+            set_water_level_card_style (() => {return "info"})
         }
         else {
             // Alarm from trash bin container
-            set_water_level_card_style (() => {return "Danger"})
+            set_water_level_card_style (() => {return "danger"})
         }
 
         
@@ -175,7 +209,17 @@ export const MainApp = ({ astarte_client, device_id }) => {
         let width   = 550;
         if (is_chart_ready)
             width       = chart_ref.current.getBoundingClientRect().width;
+        console.log (`Returning a width equal to ${width}`)
         return width
+    }
+
+    const resize_chart = () => {
+        set_chart_desc (chart => {
+            let width   = get_chart_width ()
+            let height  = width*4/16
+            console.log (`h:${height},   w:${width}`)
+            return {...chart, width:width, height:height}
+        })
     }
 
     React.useEffect(() => {
@@ -186,14 +230,10 @@ export const MainApp = ({ astarte_client, device_id }) => {
 
     React.useEffect(() => {
         if (is_chart_ready) {
-            const resize_chart = () => {
-                set_chart_desc (chart => {
-                    return {...chart, width:get_chart_width()}
-                })
-            }
-        
             // Registering listeners to resize chart
             window.addEventListener("resize", resize_chart);
+            // Resizing chart
+            resize_chart ()
 
             return () => {
                 window.removeEventListener("resize", resize_chart, false);
@@ -246,8 +286,8 @@ export const MainApp = ({ astarte_client, device_id }) => {
         }
 
         // Retrieving interesting data depending on 'filter_by' and 'time_period' values
-        let [query_params, raw_data]    = await retrieve_data (astarte_client, device_id, filter_by,
-                                                                time_period)
+        let [query_params, raw_data]    = await retrieve_data (astarte_client, device_id, search_date,
+                                                                filter_by, time_period)
 
         // Parsing obtained data
         let new_data                    = parse_retrieved_data (raw_data, beverages_descriptors,
@@ -256,7 +296,24 @@ export const MainApp = ({ astarte_client, device_id }) => {
         // Updating 'chart_desc'
         set_chart_desc ({...chart_desc, data:new_data})
 
-    }, [group_by, filter_by, time_period])
+    }, [search_date, group_by, filter_by, time_period])
+
+
+    const create_button_group   = (button_group, idx_prefix, state_var, set_state_var) => {
+        return (
+        <ButtonGroup className="text-center">
+            {button_group.map((el, idx) => (
+                <ToggleButton variant='outline-primary' key={`${idx_prefix}-${idx}`} id={`${idx_prefix}-${idx}`}
+                    type='radio' name={el.name} value={el.value}
+                    checked={el.value === state_var}
+                    ref={el.button_ref}
+                    onChange={(e) => {set_state_var(el.value)}}
+                >
+                        {el.name}
+                </ToggleButton>)
+            )}
+        </ButtonGroup>)
+    }
 
 
     return (
@@ -264,111 +321,61 @@ export const MainApp = ({ astarte_client, device_id }) => {
             <Container fluid>
 
                 {/* STATISTICS ROW */}
-                {/*TODO Use a descriptor to build cards*/}
                 <Row>
-                    <Col sm={12} md={3}>
-                        <Card bg="primary" className="stats-section rounded">
-                            <Card.Body>
-                                <div className="stats-container">
-                                    <div className="stats-title">
-                                        <div className="stats-number">{total_beverages}</div>
-                                        <h3>Served Beverages</h3>
-                                        <small>Real time</small>
-                                    </div>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-
-                    <Col sm={12} md={3}>
-                        <Card bg="primary" className="stats-section rounded">
-                            <Card.Body>
-                                <div className="stats-container">
-                                    <div className="stats-title">
-                                        <div className="stats-number">{daily_revenue} €</div>
-                                        <h3>Daily Revenue</h3>
-                                        <small>Real time</small>
-                                    </div>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-
-                    <Col sm={12} md={3}>
-                        <Card bg={water_level_card_style[0].toLowerCase()} className="stats-section rounded">
-                            <Card.Body>
-                                <div className="stats-container">
-                                    <div className="stats-title">
-                                        <div className="stats-number">{water_status}</div>
-                                        <h3>Water Level</h3>
-                                        <small>Real time</small>
-                                    </div>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-
-                    <Col sm={12} md={3}>
-                        <Card bg={trash_bin_status_card_style[0].toLowerCase()} className="stats-section rounded">
-                            <Card.Body>
-                                <div className="stats-container">
-                                    <div className="stats-title">
-                                        <div className="stats-number">{trash_bin_status}</div>
-                                        <h3>Trash Bin Status</h3>
-                                        <small>Real time</small>
-                                    </div>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
+                    {_.map (cards_descriptors, ((item, k) =>
+                        (<Col sm={12} md={3} key={`cd-${k}`}>
+                            <Card bg={item.bg} text="white" className="rounded text-center">
+                                <Card.Body>
+                                    <div className="h3">{item.value}</div>
+                                    <div className="h4">{item.description}</div>
+                                    <small>Real time</small>
+                                </Card.Body>
+                            </Card>
+                        </Col>)
+                    ))}
                 </Row>
 
 
                 {/* CHART ROW */}
                 <Row>
                     <Col sm={12} md={12}>
-                        <Card className="chart-section rounded">
+                        <Card className="rounded">
                             <Card.Body>
-                                <ButtonToolbar>
+
+                                <ButtonToolbar className="d-flex justify-content-between">
                                     
-                                    <ButtonGroup className="me-2">
-                                        {control_buttons_descriptors.group_by.map((el, idx) => (
-                                            <ToggleButton variant='outline-primary' key={idx} id={`gb-${idx}`}
-                                                type='radio' name={el.name} value={el.value}
-                                                checked={el.value === group_by}
-                                                ref={el.button_ref}
-                                                onChange={(e) => {set_group_by(el.value)}}
-                                            >
-                                                    {el.name}
-                                            </ToggleButton>)
-                                        )}
-                                    </ButtonGroup>
-                                    
-                                    <ButtonGroup className="me-2">
-                                        {control_buttons_descriptors.filter_by.map((el, idx) => (
-                                            <ToggleButton variant='outline-primary' key={idx} id={`fb-${idx}`}
-                                                type='radio' name={el.name} value={el.value}
-                                                checked={el.value === filter_by}
-                                                onChange={(e) => {set_filter_by(el.value)}}
-                                            >
-                                                    {el.name}
-                                            </ToggleButton>)
-                                        )}
-                                    </ButtonGroup>
-                                    
-                                    <ButtonGroup className="me-2">
-                                        {control_buttons_descriptors.time_period.map((el, idx) => (
-                                            <ToggleButton variant='outline-primary' key={idx} id={`tp-${idx}`}
-                                                type='radio' name={el.name} value={el.value}
-                                                checked={el.value === time_period}
-                                                onChange={(e) => {set_time_period(el.value)}}
-                                            >
-                                                    {el.name}
-                                            </ToggleButton>)
-                                        )}
-                                    </ButtonGroup>
+                                    <div>
+                                        {/*UNITS, REVENUE buttons*/}
+                                        {create_button_group (control_buttons_descriptors.group_by,
+                                                                "gb", group_by, set_group_by)}
+                                        
+                                        {/*ALL, SHORT COFFE, LONG COFFE buttons*/}
+                                        {create_button_group (control_buttons_descriptors.filter_by,
+                                                                "fb", filter_by, set_filter_by)}
+                                    </div>
+
+                                    <div>
+                                        {/*DATE SELECTOR buttons*/}
+                                        {create_button_group (control_buttons_descriptors.time_period,
+                                                                "tp", time_period, set_time_period)}
+
+                                        {/*DATE PICKER*/}
+                                        <DatePicker selected    ={search_date}
+                                                    dateFormat  = "dd/MM/yyyy"
+                                                    onChange    ={(date) => {
+                                                        set_search_date (new Date(date))
+                                                    }} 
+                                                    className="me-2"
+                                                    customInput={<BsCalendarDate size={30}/>}/>
+                                    </div>
                                 
                                 </ButtonToolbar>
+
+                                <hr/>
+
+                                <Card.Title className='text-primary'>
+                                    Beverages Chart
+                                </Card.Title>
                                 
                                 <div className="chart-container" ref={chart_ref}>
                                     <Fragment>
@@ -384,11 +391,11 @@ export const MainApp = ({ astarte_client, device_id }) => {
                 {/* PRODUCTS OVERVIEW ROW */}
                 <Row>
                     <Col sm={12} md={12}>
-                        <Card bg="info" className="rounded">
+                        <Card bg="light" className="rounded">
+                            <Card.Title className='text-primary'>
+                                Products Overview
+                            </Card.Title>
                             <Card.Body>
-                                <div className="stats-title">
-                                    Products Overview
-                                </div>
                                 <OverviewData data={overview_data}/>
                             </Card.Body>
                         </Card>
@@ -450,7 +457,7 @@ let get_all_data_since  = async (astarte_client, device_id, since) => {
 
 
 
-const retrieve_data     = async (astarte_client, device_id, filter_by, time_period) => {
+const retrieve_data     = async (astarte_client, device_id, search_date, filter_by, time_period) => {
     //console.log (`Retrieving data regarding ${filter_by} on period ${time_period}`)
     let result          = {
         short_coffee    : undefined,
@@ -462,12 +469,11 @@ const retrieve_data     = async (astarte_client, device_id, filter_by, time_peri
         to          : undefined
     }
 
-    let today_start_end_time    = () => {
-        let curr_date   = new Date ()
-        let start_date  = new Date (curr_date.getFullYear(), curr_date.getMonth(),
-                                    curr_date.getDate (), 0, 0, 0, 0)
-        let end_date    = new Date (curr_date.getFullYear(), curr_date.getMonth(),
-                                    curr_date.getDate (), 23, 59, 59, 999)
+    let search_date_start_end_time  = (search_date) => {
+        let start_date  = new Date (search_date.getFullYear(), search_date.getMonth(),
+                                    search_date.getDate (), 0, 0, 0, 0)
+        let end_date    = new Date (search_date.getFullYear(), search_date.getMonth(),
+                                    search_date.getDate (), 23, 59, 59, 999)
         return [start_date, end_date]
     }
     let get_last_monday = (d) => {
@@ -486,7 +492,7 @@ const retrieve_data     = async (astarte_client, device_id, filter_by, time_peri
         return result;
     }
 
-    [query_params.since, query_params.to]   = today_start_end_time()
+    [query_params.since, query_params.to]   = search_date_start_end_time(search_date)
     
     // Building since - to parameters
     if (time_period == 0) {
@@ -650,8 +656,8 @@ const parse_retrieved_data  = (raw_data, beverages_descriptors, group_by, time_p
         })
     }
 
-    console.log (`new_data`)
-    console.log (new_data)
+    /*console.log (`new_data`)
+    console.log (new_data)*/
 
     return new_data
 }
@@ -687,10 +693,6 @@ const chart_options = {
     },
     markers: {
         size: 0,
-    },
-    title: {
-        text: 'Beverages',
-        align: 'left'
     },
     xaxis: {
         type : "category"
@@ -730,7 +732,8 @@ const ChartData = ({ chart_descriptor, isMount = false }) => {
 
 
     return (<div>
-        <Chart width={chart_descriptor.width} options={chart_options} series={series} type='bar'/>
+        <Chart width={chart_descriptor.width} height={chart_descriptor.height}
+                options={chart_options} series={series} type='bar'/>
     </div>)
 };
 
