@@ -1,77 +1,77 @@
 
-.window-center {
+/* .window-center {
   position: relative;
   margin-left: 47%;
   margin-top: 20%;
-}
+} */
 
 
 /* Main cards */
-.stats-section {
+/* .stats-section {
   margin: 8px;
-}
+} */
 
-.stats-container {
+/* .stats-container {
   display: flex;
   justify-content: space-between;
-}
+} */
 
-.stats-title {
+/* .stats-title {
   display: flex;
   flex-direction: column;;
-}
+} */
 
-.stats-number {
+/* .stats-number {
   font-size: 3em;
   font-weight: bold;
-}
+} */
 
 
 /* Sub cards */
-.area-section {
+/* .area-section {
   margin: 8px;
-}
+} */
 
-.area-container {
+/* .area-container {
   display: flex;
   flex-direction: column-reverse;
   justify-content: center;
   align-items: center;
-}
+} */
 
-.area-title {
+/* .area-title {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
+} */
 
-.area-number {
+/* .area-number {
   font-size: 2.3em;
   font-weight: bold;
-}
+} */
 
 
 /* Chart */
-.chart-section {
+/* .chart-section {
   margin: 8px;
-}
+} */
 
-.chart-title {
+/* .chart-title {
   display: flex;
   justify-content: space-between;
-}
+} */
 
-.chart-container {
+/* .chart-container {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-}
+} */
 
-.dot {
+/*.dot {
   height: 15px;
   width: 15px;
   background-color: orange;
   border-radius: 50%;
   display: inline-block;
-}
+}*/
