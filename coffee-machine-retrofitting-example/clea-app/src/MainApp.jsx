@@ -1,14 +1,14 @@
 
 import "core-js/stable"
 import "regenerator-runtime/runtime"
-import React, { Fragment } from "react";
-import {BsCalendarDate} from "react-icons/bs";
+import React, { Fragment, forwardRef } from "react";
+import {FaRegCalendarAlt} from "react-icons/fa";
 import { Table, Button, ButtonGroup, ButtonToolbar, Col, Container, Card, Row, InputGroup,
             FormControl,  ToggleButton} from "react-bootstrap";
 import { FormattedMessage } from "react-intl";
 import Chart from "react-apexcharts";
 import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import DatePickerStyle from "react-datepicker/dist/react-datepicker.css";
 import 'react-datepicker/dist/react-datepicker-cssmodules.css';
 import _, { now } from 'lodash';
 
@@ -59,16 +59,16 @@ export const MainApp = ({ astarte_client, device_id }) => {
             set_trash_bin_status_card_style]    = React.useState ("info")       // info, danger
     const [water_level_card_style,
             set_water_level_card_style]         = React.useState ("info")       // info, danger
-    const [total_beverages, set_beverages]      = React.useState (0)
+    const [daily_beverages, set_beverages]      = React.useState (0)
     const [daily_revenue, set_revenue]          = React.useState (0)
     const [water_status, set_water]             = React.useState ("Normal")
     const [trash_bin_status, set_trash]         = React.useState ("Normal")
     const [overview_data, set_overview]         = React.useState ([])
     const cards_descriptors                     = [
         {
-            "value"         : total_beverages,
+            "value"         : daily_beverages,
             "bg"            : "info",
-            "description"   : "Served Beverages"
+            "description"   : "Daily Served Beverages"
         },
         {
             "value"         : daily_revenue,
@@ -103,13 +103,13 @@ export const MainApp = ({ astarte_client, device_id }) => {
 
     const INITIAL_BEVERAGES_HISTORY_HOURS   = 48;
     const UPDATE_INTERVAL_MS                = 4000;
-    /* FIXME Consider to use two different times: the first one for normal queries,
+    /* TODO Consider to use two different times: the first one for normal queries,
                 the second one for wueries when strange event appears */
     
 
     // Function that allows you to update counters and overviews 
-    const update_counters_and_overviews = async (new_data) => {
-        //console.log (new_data)
+    const update_counters_and_overviews = async (new_data, since_date) => {
+        console.log (new_data)
 
         // Updating local counters
         if (new_data.short_coffee.length > 0 ) {
@@ -123,28 +123,29 @@ export const MainApp = ({ astarte_client, device_id }) => {
             beverages_descriptors.long_coffee.last_update   = last_item.timestamp
         }
 
+        // Computing daily beverages count
         let today       = new Date()
-        let start_date  = new Date (today.getFullYear(), today.getMonth(), today.getDate (), 0, 0, 0, 0)
+        let start_date  = new Date (today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0)
         let sc_data     = astarte_client.get_short_coffee_status ({device_id, since:start_date})
         let lc_data     = astarte_client.get_long_coffee_status ({device_id, since:start_date})
         
         try {sc_data   = await sc_data}
         catch (err) {sc_data    = []}
+        let sc_count    = sc_data.length>0 ? (sc_data.at(-1).value-sc_data.at(0).value+1) : 0
+
         try {lc_data    = await lc_data}
         catch (err) {lc_data    = []}
+        let lc_count    = lc_data.length>0 ? (lc_data.at(-1).value-lc_data.at(0).value+1) : 0
 
-        // Summing all arrays length to update 'total_beverages'
+        // Updating 'daily_beverages'
         set_beverages (() => {
-            return beverages_descriptors.short_coffee.counter + beverages_descriptors.long_coffee.counter
+            return lc_count+sc_count
         })
         
-        // Computing and updating daily_revenues
+        // Computing and updating 'daily_revenues'
         set_revenue (() => {
-            let revenue = 0
-            if (sc_data.length > 0)
-                revenue += (sc_data.at(-1).value-sc_data.at(0).value+1) * beverages_descriptors.short_coffee.revenue
-            if (lc_data.length > 0)
-                revenue += (lc_data.at(-1).value-lc_data.at(0).value+1) * beverages_descriptors.long_coffee.revenue
+            let revenue = (sc_count*beverages_descriptors.short_coffee.revenue) +
+                            (lc_count*beverages_descriptors.long_coffee.revenue)
             return Number (revenue.toFixed(2))
         })
         
@@ -193,9 +194,6 @@ export const MainApp = ({ astarte_client, device_id }) => {
                 }
             ]
         })
-        
-        // TODO Updating chart IF AND ONLY IF target time contains the current time
-        console.log (`Updating chart (IFF)..`)
 
         return ;
     }
@@ -216,7 +214,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
     const resize_chart = () => {
         set_chart_desc (chart => {
             let width   = get_chart_width ()
-            let height  = width*4/16
+            let height  = width*6/16
             console.log (`h:${height},   w:${width}`)
             return {...chart, width:width, height:height}
         })
@@ -232,8 +230,10 @@ export const MainApp = ({ astarte_client, device_id }) => {
         if (is_chart_ready) {
             // Registering listeners to resize chart
             window.addEventListener("resize", resize_chart);
-            // Resizing chart
-            resize_chart ()
+            // FIXME Forcing chart resize
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 200);
 
             return () => {
                 window.removeEventListener("resize", resize_chart, false);
@@ -249,7 +249,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
                 let since   = new Date ()
                 since.setHours (since.getHours() - INITIAL_BEVERAGES_HISTORY_HOURS)
                 let historical_data = await get_all_data_since (astarte_client, device_id, since)
-                update_counters_and_overviews (historical_data)
+                update_counters_and_overviews (historical_data, since)
             } catch (err) {
                 console.error (`Cannot retrieve historical data: ${err}`)
             }
@@ -261,7 +261,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
                     last_update_time    = new Date ()
                     let data            = await get_all_data_since (astarte_client, device_id, since)
                     if (Object.keys(data).length != 0)
-                        update_counters_and_overviews (data)
+                        update_counters_and_overviews (data, since)
                 } catch (err) {
                     console.log (`Catched an error:`)
                 }
@@ -279,7 +279,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
 
 
     // Setting up handlers to display chart data
-    React.useEffect (async () => {
+    const update_chart  = async () => {
         if (!astarte_client) {
             console.error ("Astarte client not ready!")
             return ;
@@ -295,13 +295,15 @@ export const MainApp = ({ astarte_client, device_id }) => {
 
         // Updating 'chart_desc'
         set_chart_desc ({...chart_desc, data:new_data})
-
+    }
+    React.useEffect (() => {
+        update_chart ()
     }, [search_date, group_by, filter_by, time_period])
 
 
     const create_button_group   = (button_group, idx_prefix, state_var, set_state_var) => {
         return (
-        <ButtonGroup className="text-center">
+        <ButtonGroup className="text-center m-3">
             {button_group.map((el, idx) => (
                 <ToggleButton variant='outline-primary' key={`${idx_prefix}-${idx}`} id={`${idx_prefix}-${idx}`}
                     type='radio' name={el.name} value={el.value}
@@ -315,6 +317,15 @@ export const MainApp = ({ astarte_client, device_id }) => {
         </ButtonGroup>)
     }
 
+    const CustomCalendarInput   = forwardRef ((props, ref) => {
+        console.log (props)
+        return (
+            <Button variant='outline-primary'>
+                <FaRegCalendarAlt size={20} onClick={onclick} ref={ref}/>
+            </Button>
+        )
+    });
+
 
     return (
         <div className="p-4">
@@ -324,10 +335,10 @@ export const MainApp = ({ astarte_client, device_id }) => {
                 <Row>
                     {_.map (cards_descriptors, ((item, k) =>
                         (<Col sm={12} md={3} key={`cd-${k}`}>
-                            <Card bg={item.bg} text="white" className="rounded text-center">
+                            <Card bg={item.bg} text="white" className="rounded text-center m-3">
                                 <Card.Body>
                                     <div className="h3">{item.value}</div>
-                                    <div className="h4">{item.description}</div>
+                                    <div className="h5">{item.description}</div>
                                     <small>Real time</small>
                                 </Card.Body>
                             </Card>
@@ -336,10 +347,25 @@ export const MainApp = ({ astarte_client, device_id }) => {
                 </Row>
 
 
+                {/* PRODUCTS OVERVIEW ROW */}
+                <Row>
+                    <Col sm={12} md={12}>
+                        <Card bg="light" className="rounded m-3">
+                            <Card.Title className='text-primary m-3'>
+                                Products Overview
+                            </Card.Title>
+                            <Card.Body>
+                                <OverviewData data={overview_data}/>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+
+
                 {/* CHART ROW */}
                 <Row>
                     <Col sm={12} md={12}>
-                        <Card className="rounded">
+                        <Card className="rounded m-3">
                             <Card.Body>
 
                                 <ButtonToolbar className="d-flex justify-content-between">
@@ -354,19 +380,27 @@ export const MainApp = ({ astarte_client, device_id }) => {
                                                                 "fb", filter_by, set_filter_by)}
                                     </div>
 
-                                    <div>
+                                    <div className="d-flex justify-content-between">
+                                        <style>{DatePickerStyle.toString()}</style>
                                         {/*DATE SELECTOR buttons*/}
                                         {create_button_group (control_buttons_descriptors.time_period,
                                                                 "tp", time_period, set_time_period)}
 
                                         {/*DATE PICKER*/}
-                                        <DatePicker selected    ={search_date}
-                                                    dateFormat  = "dd/MM/yyyy"
-                                                    onChange    ={(date) => {
-                                                        set_search_date (new Date(date))
-                                                    }} 
-                                                    className="me-2"
-                                                    customInput={<BsCalendarDate size={30}/>}/>
+                                        <DatePicker 
+                                            selected    = {search_date}
+                                            dateFormat  = "dd/MM/yyyy"
+                                            onChange    = {(date) => {
+                                                console.log (`setting search date to ${date}`)
+                                                set_search_date (new Date(date))
+                                            }} 
+                                            className="m-3"
+                                            customInput={
+                                                <Button variant='outline-primary'>
+                                                    <FaRegCalendarAlt size={20} onClick={onclick}/>
+                                                </Button>
+                                            }
+                                        />
                                     </div>
                                 
                                 </ButtonToolbar>
@@ -377,26 +411,11 @@ export const MainApp = ({ astarte_client, device_id }) => {
                                     Beverages Chart
                                 </Card.Title>
                                 
-                                <div className="chart-container" ref={chart_ref}>
+                                <div ref={chart_ref}>
                                     <Fragment>
                                         <ChartData chart_descriptor={chart_desc}/>
                                     </Fragment>
                                 </div>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-
-
-                {/* PRODUCTS OVERVIEW ROW */}
-                <Row>
-                    <Col sm={12} md={12}>
-                        <Card bg="light" className="rounded">
-                            <Card.Title className='text-primary'>
-                                Products Overview
-                            </Card.Title>
-                            <Card.Body>
-                                <OverviewData data={overview_data}/>
                             </Card.Body>
                         </Card>
                     </Col>
@@ -457,18 +476,7 @@ let get_all_data_since  = async (astarte_client, device_id, since) => {
 
 
 
-const retrieve_data     = async (astarte_client, device_id, search_date, filter_by, time_period) => {
-    //console.log (`Retrieving data regarding ${filter_by} on period ${time_period}`)
-    let result          = {
-        short_coffee    : undefined,
-        long_coffee     : undefined
-    }
-    let query_params    = {
-        device_id   : device_id,
-        since       : undefined,
-        to          : undefined
-    }
-
+const compute_actual_time_period    = (time_period, search_date) => {
     let search_date_start_end_time  = (search_date) => {
         let start_date  = new Date (search_date.getFullYear(), search_date.getMonth(),
                                     search_date.getDate (), 0, 0, 0, 0)
@@ -492,8 +500,8 @@ const retrieve_data     = async (astarte_client, device_id, search_date, filter_
         return result;
     }
 
-    [query_params.since, query_params.to]   = search_date_start_end_time(search_date)
-    
+    let [since, to] = search_date_start_end_time(search_date)
+
     // Building since - to parameters
     if (time_period == 0) {
         // Requesting data only for today
@@ -501,26 +509,53 @@ const retrieve_data     = async (astarte_client, device_id, search_date, filter_
     }
     else if (time_period == 1) {
         // Requesting data for entire week
-        query_params.since  = get_last_monday (query_params.since)
-        query_params.to     = get_next_sunday (query_params.to)
+        since   = get_last_monday (since)
+        to      = get_next_sunday (to)
     }
     else if (time_period == 2) {
         // Requesting data for entire month
-        query_params.since.setDate (1)
-        query_params.to.setDate (1)
-        query_params.to.setMonth (query_params.to.getMonth()+1)
-        query_params.to.setDate (query_params.to.getDate()-1)
+        since.setDate (1)
+        to.setDate (1)
+        to.setMonth (to.getMonth()+1)
+        to.setDate (to.getDate()-1)
     }
     else if (time_period == 3) {
-        query_params.since.setMonth (0)
-        query_params.since.setDate (1)
-        query_params.to.setMonth (11)
-        query_params.to.setDate (31)
+        since.setMonth (0)
+        since.setDate (1)
+        to.setMonth (11)
+        to.setDate (31)
     }
     else {
         // Bad time_period value: throwing an error!
         throw `Invalid time_period value: ${time_period}`
     }
+
+    return [since, to]
+}
+
+
+
+
+const retrieve_data     = async (astarte_client, device_id, search_date, filter_by, time_period) => {
+    //console.log (`Retrieving data regarding ${filter_by} on period ${time_period}`)
+    let result          = {
+        short_coffee    : undefined,
+        long_coffee     : undefined
+    }
+    let query_params    = {
+        device_id   : device_id,
+        since       : undefined,
+        to          : undefined
+    }
+
+    
+
+    let [since, to]     = compute_actual_time_period (time_period, search_date)
+    query_params.since  = since
+    query_params.to     = to
+    console.log (`since:\t${query_params.since}\nto:\t${query_params.to}`)
+    
+    
 
     if (filter_by == 0) {
         // Requesting all data
@@ -726,8 +761,8 @@ const ChartData = ({ chart_descriptor, isMount = false }) => {
     )
     //chart_options.xaxis.categories  = chart_descriptor.categories
 
-    /*if (!width)
-        console.log (`w: ${MainApp.get_chart_width()}`)*/
+    // if (!chart_descriptor.width)
+    //     console.log (`w: ${get_chart_width()}`)
     //console.log (`New width is ${width}`)
 
 
