@@ -109,7 +109,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
 
     // Function that allows you to update counters and overviews 
     const update_counters_and_overviews = async (new_data, since_date) => {
-        console.log (new_data)
+        //console.log (new_data)
 
         // Updating local counters
         if (new_data.short_coffee.length > 0 ) {
@@ -207,7 +207,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
         let width   = 550;
         if (is_chart_ready)
             width       = chart_ref.current.getBoundingClientRect().width;
-        console.log (`Returning a width equal to ${width}`)
+        //console.log (`Returning a width equal to ${width}`)
         return width
     }
 
@@ -215,7 +215,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
         set_chart_desc (chart => {
             let width   = get_chart_width ()
             let height  = width*6/16
-            console.log (`h:${height},   w:${width}`)
+            //console.log (`h:${height},   w:${width}`)
             return {...chart, width:width, height:height}
         })
     }
@@ -413,7 +413,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
                                 
                                 <div ref={chart_ref}>
                                     <Fragment>
-                                        <ChartData chart_descriptor={chart_desc}/>
+                                        <ChartData chart_descriptor={chart_desc} group_by={group_by}/>
                                     </Fragment>
                                 </div>
                             </Card.Body>
@@ -553,7 +553,7 @@ const retrieve_data     = async (astarte_client, device_id, search_date, filter_
     let [since, to]     = compute_actual_time_period (time_period, search_date)
     query_params.since  = since
     query_params.to     = to
-    console.log (`since:\t${query_params.since}\nto:\t${query_params.to}`)
+    //console.log (`since:\t${query_params.since}\nto:\t${query_params.to}`)
     
     
 
@@ -692,6 +692,14 @@ const parse_retrieved_data  = (raw_data, beverages_descriptors, group_by, time_p
     }
 
     /*console.log (`new_data`)
+    console.log (new_data)
+    if (group_by == 1) {
+        new_data    = _.map (new_data, (item, idx, cll) => {
+            return {x:item.x, y:item.y}
+        })
+    }*/
+
+    /*console.log (`new_data`)
     console.log (new_data)*/
 
     return new_data
@@ -735,26 +743,26 @@ const chart_options = {
     tooltip: {
         shared: false,
         y: {
-            formatter: function (val) {
+            formatter: (val) => {
                 return val.toString().indexOf(".") == -1 ? val : val.toFixed(2)
             }
         }
     },
     yaxis: {
         labels: {
-            formatter: function (val) {
-                return val.toFixed(0)
+            formatter: (val) => {
+                return `${val.toFixed(0)}`
             },
         },
     }
 };
 
 
-const ChartData = ({ chart_descriptor, isMount = false }) => {
+const ChartData = ({ chart_descriptor, group_by, isMount = false }) => {
     const series    = React.useMemo(
         () => {
             return [{
-                name : "Beverages",
+                name : group_by==0 ? "Beverages" : "Revenue",
                 data : chart_descriptor.data
             }]
         }
