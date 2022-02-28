@@ -113,12 +113,12 @@ export const MainApp = ({ astarte_client, device_id }) => {
 
         // Updating local counters
         if (new_data.short_coffee.length > 0 ) {
-            let last_item                                   = new_data.short_coffee.at(-1)
+            let last_item                                   = new_data.short_coffee[new_data.short_coffee.length-1]
             beverages_descriptors.short_coffee.counter      = last_item.value
             beverages_descriptors.short_coffee.last_update  = last_item.timestamp
         }
         if (new_data.long_coffee.length > 0 ) {
-            let last_item                                   = new_data.long_coffee.at(-1)
+            let last_item                                   = new_data.long_coffee[new_data.long_coffee.length-1]
             beverages_descriptors.long_coffee.counter       = last_item.value
             beverages_descriptors.long_coffee.last_update   = last_item.timestamp
         }
@@ -131,11 +131,21 @@ export const MainApp = ({ astarte_client, device_id }) => {
         
         try {sc_data   = await sc_data}
         catch (err) {sc_data    = []}
-        let sc_count    = sc_data.length>0 ? (sc_data.at(-1).value-sc_data.at(0).value+1) : 0
-
+        let sc_count    = 0
+        if (sc_data.length>0) {
+            let first_item  = sc_data[0]
+            let last_item   = sc_data[sc_data.length-1]
+            sc_count        = last_item.value-first_item.value+1
+        }
+        
         try {lc_data    = await lc_data}
         catch (err) {lc_data    = []}
-        let lc_count    = lc_data.length>0 ? (lc_data.at(-1).value-lc_data.at(0).value+1) : 0
+        let lc_count    = 0
+        if (lc_data.length>0) {
+            let first_item  = lc_data[0]
+            let last_item   = lc_data[lc_data.length-1]
+            lc_count        = last_item.value-first_item.value+1
+        }
 
         // Updating 'daily_beverages'
         set_beverages (() => {
