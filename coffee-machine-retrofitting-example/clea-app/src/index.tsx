@@ -22,10 +22,10 @@ const { useEffect, useMemo, useState }  = React;
 
 
 type AppProps = {
-    astarte_url: URL;
+    astarteUrl: URL;
     realm: string;
     token: string;
-    device_id: string;
+    deviceId: string;
 
 };
 
@@ -34,15 +34,20 @@ type Settings = {
     userPreferences: UserPreferences;
 }
 
-const App = ({ astarte_url, realm, token, device_id }: AppProps) => {
+const App = ({ astarteUrl, realm, token, deviceId }: AppProps) => {
 
     const astarte_client    = useMemo(() => {
-        return new AstarteClient({ astarte_url, realm, token });
-    }, [astarte_url, realm, token]);
+        const astarte_params    = {
+            astarte_url : astarteUrl,
+            realm,
+            token
+        }
+        return new AstarteClient(astarte_params);
+    }, [astarteUrl, realm, token]);
 
     return (
         <Fragment>
-            <MainApp astarte_client={astarte_client} device_id={device_id}/>
+            <MainApp astarte_client={astarte_client} device_id={deviceId}/>
         </Fragment>
     );
 };
