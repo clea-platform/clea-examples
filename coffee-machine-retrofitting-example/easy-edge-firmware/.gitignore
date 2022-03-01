@@ -8,4 +8,4 @@
 **/build/
 **/out/
 /cmake-build-debug*
-**/sdkconfig*
+**/sdkconfig.*
