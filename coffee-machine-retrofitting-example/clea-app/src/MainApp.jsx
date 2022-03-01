@@ -239,10 +239,6 @@ export const MainApp = ({ astarte_client, device_id }) => {
         if (is_chart_ready) {
             // Registering listeners to resize chart
             window.addEventListener("resize", resize_chart);
-            // FIXME Forcing chart resize
-            /*setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-            }, 200);*/
 
             return () => {
                 window.removeEventListener("resize", resize_chart, false);
