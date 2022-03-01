@@ -212,12 +212,11 @@ export const MainApp = ({ astarte_client, device_id }) => {
     /*  ==================================
                 Chart size effects
         ================================== */
-
     const get_chart_width   = () => {
         let width   = 550;
-        if (is_chart_ready)
+        if (chart_ref.current) {
             width       = chart_ref.current.getBoundingClientRect().width;
-        //console.log (`Returning a width equal to ${width}`)
+        }
         return width
     }
 
@@ -241,9 +240,9 @@ export const MainApp = ({ astarte_client, device_id }) => {
             // Registering listeners to resize chart
             window.addEventListener("resize", resize_chart);
             // FIXME Forcing chart resize
-            setTimeout(() => {
+            /*setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
-            }, 200);
+            }, 200);*/
 
             return () => {
                 window.removeEventListener("resize", resize_chart, false);
@@ -260,6 +259,7 @@ export const MainApp = ({ astarte_client, device_id }) => {
                 since.setHours (since.getHours() - INITIAL_BEVERAGES_HISTORY_HOURS)
                 let historical_data = await get_all_data_since (astarte_client, device_id, since)
                 update_counters_and_overviews (historical_data, since)
+                resize_chart ()
             } catch (err) {
                 console.error (`Cannot retrieve historical data: ${err}`)
             }
@@ -270,8 +270,10 @@ export const MainApp = ({ astarte_client, device_id }) => {
                     let since           = last_update_time
                     last_update_time    = new Date ()
                     let data            = await get_all_data_since (astarte_client, device_id, since)
-                    if (Object.keys(data).length != 0)
+                    if (Object.keys(data).length != 0) {
                         update_counters_and_overviews (data, since)
+                        resize_chart ()
+                    }
                 } catch (err) {
                     console.log (`Catched an error:`)
                 }
