@@ -731,7 +731,7 @@ const chart_options = {
         },
         toolbar: {
             show : false,
-            autoSelected: 'zoom'
+            autoSelected: 'pan'
         }
     },
     stroke: {
