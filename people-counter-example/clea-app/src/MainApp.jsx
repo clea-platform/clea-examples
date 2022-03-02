@@ -246,6 +246,19 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
                         </Card>
                     </Col>
                 </Row>
+
+                <Row className="mt-5">
+                    <Card className="border-0">
+                        <Card.Title className="m-2">
+                            Average Presence
+                        </Card.Title>
+                        <Card.Body>
+                            <div className="chart-container">
+                                <StatsChart />
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Row>
             </Container>
         </div>
     );
@@ -304,9 +317,9 @@ function parseCounterData(data) {
 
 
 
-/*  ==============================
-            CHART SETTINGS
-    ============================== */
+/*  ===================================
+            DATA CHART SETTINGS
+    =================================== */
 
 const chartOptions = {
     chart: {
@@ -385,3 +398,157 @@ const DataChart = ({ data, width, height, isMount = false }) => {
         <Chart type="line" width={width} options={chartOptions} series={series} />
     );
 };
+
+
+
+
+/*  ====================================
+            STATS CHART SETTINGS
+    ==================================== */
+
+const stats_chart_options   = {
+    chart   : {
+        id      : 'stats-chart',
+        type    : 'bar',
+        toolbar: {
+            show : false,
+            autoSelected: 'pan'
+        }
+    },
+    stroke: {
+        width: [2, 2],
+        curve: 'smooth'
+    },
+    colors: ['#FF8300'],
+    title: {
+        show    : false
+    },
+    tooltip: {
+        /* TODO
+        shared: false,
+        y: {
+            formatter: function (val) {
+                return (val).toFixed(0)
+            }
+        }*/
+    },
+    yaxis: {
+        /*TODO
+        labels: {
+            formatter: function (val) {
+                return (val).toFixed(0);
+            },
+        },*/
+    }
+}
+
+
+const StatsChart    = ({}) => {
+    const [stats_chart_data, set_stats_data]    = React.useState ({data:[]})
+    const [filter_grain, set_filter_grain]      = React.useState (0)                        // 0:hours, 1:weekdays, 2:moth days
+    const [date_range, set_date_range]          = React.useState ([new Date(), new Date()]) // DatePicker result
+    const [start_date, end_date]                = date_range;
+    const buttons_descriptors                   = [
+        {
+            value       : 0,
+            content     : "Days",
+            id          : "hrs"
+        },
+        {
+            value       : 1,
+            content     : "Week",
+            id          : "wds"
+        },
+        {
+            value       : 2,
+            content     : "Month",
+            id          : "mds"
+        }
+    ]
+
+
+    React.useEffect (() => {
+        if (start_date != null && end_date != null) {
+            console.log (`Reloading stats data`)
+            set_stats_data (()=>{
+                let data    = []
+                for (let i=0; i<10; i++) {
+                    data.push ({x:i, y:Math.random()*100})
+                }
+                return data
+            })
+        }
+    }, [filter_grain, date_range])
+    
+
+    const series    = React.useMemo(
+        () => {
+            console.log (`Inside memo`)
+            let data    = stats_chart_data
+            return [
+                {
+                    name    : "Average",
+                    data    : _.map (stats_chart_data, (item) => item)
+                }
+            ]
+        }
+    )
+
+
+    const create_button = (item, idx) => {
+        return (
+            <ToggleButton variant="outline-light" type="radio"
+                            className={`m-2 ${filter_grain==item.value ?
+                                                "shadow text-primary" : "text-dark"}`}
+                            id={`filter-btn-${item.id}`} key={`filter-btn-${item.id}`}
+                            onChange={(e) => {set_filter_grain(item.value)}}>
+                {item.content}
+            </ToggleButton>
+        )
+    }
+
+    const date_calculator   = () => {
+        // TODO Take into account 'filter_grain' variable
+        let start_date_str  = start_date==null?``:`${start_date.getDate()}/${start_date.getMonth()}/${start_date.getFullYear()}`
+        let end_date_str    = end_date==null?``:` - ${end_date.getDate()}/${end_date.getMonth()}/${end_date.getFullYear()}`
+        return `${start_date_str}${end_date_str}`
+    }
+
+
+    return (
+        <Container>
+            <Navbar className="bg-light d-flex justify-content-end">
+                {
+                    _.map (buttons_descriptors, (item, idx) => {
+                        return create_button (item, idx)
+                    })
+                }
+                <div className="m-2">
+                    <style>{DatePickerStyle.toString()}</style>
+                    {/*DATE PICKER*/}
+                    <DatePicker 
+                        selectsRange={true}
+                        startDate={start_date}
+                        endDate={end_date}
+                        onChange    = {(new_range) => {
+                            console.log (`new range!`)
+                            console.log (new_range)
+                            set_date_range (new_range)
+                        }} 
+                        isClearable={true}
+                        customInput={
+                            <InputGroup>
+                                    <InputGroup.Text>Period Range</InputGroup.Text>
+                                    <FormControl aria-label="Minutes"
+                                                    onChange={() => {}}
+                                                    value={date_calculator()}/>
+                            </InputGroup>
+                        }
+                    />
+                </div>
+            </Navbar>
+            
+            <Chart type="bar" options={stats_chart_options} series={series} />
+        </Container>
+    )
+}
