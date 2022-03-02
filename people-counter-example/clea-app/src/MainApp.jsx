@@ -2,9 +2,14 @@
 import "core-js/stable"
 import "regenerator-runtime/runtime"
 import React, { Fragment } from "react";
-import { Button, Col, Container, Card, Row, InputGroup, FormControl } from "react-bootstrap";
+import { Button, Col, Container, Card, Row, InputGroup, FormControl, ToggleButton,
+            ToggleButtonGroup, 
+            Navbar,
+            Nav} from "react-bootstrap";
 import { FormattedMessage } from "react-intl";
 import Chart from "react-apexcharts";
+import DatePicker from "react-datepicker";
+import DatePickerStyle from "react-datepicker/dist/react-datepicker.css";
 import _, { now } from 'lodash';
 
 let historical_data_size        = 5;            // minutes
