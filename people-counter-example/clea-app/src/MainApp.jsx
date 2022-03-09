@@ -132,6 +132,10 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
                 
 
                 // Creating periodic task that fetch and update data
+                if (!updateInterval) {
+                    console.error (`Wrong updateInterval value: ${updateInterval}.\nSetting it to default value`)
+                    updateInterval  = 5000
+                }
                 interval_id = setInterval(() => {
                     if (mount) {
                         // Querying data only from last update
