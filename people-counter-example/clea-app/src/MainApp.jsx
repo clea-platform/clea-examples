@@ -3,14 +3,12 @@ import "core-js/stable"
 import "regenerator-runtime/runtime"
 import React, { Fragment } from "react";
 import { Button, Col, Container, Card, Row, InputGroup, FormControl, ToggleButton,
-            ToggleButtonGroup, 
-            Navbar,
-            Nav} from "react-bootstrap";
+            ToggleButtonGroup, Spinner, Navbar, Nav} from "react-bootstrap";
 import { FormattedMessage } from "react-intl";
 import Chart from "react-apexcharts";
 import DatePicker from "react-datepicker";
 import DatePickerStyle from "react-datepicker/dist/react-datepicker.css";
-import _, { now } from 'lodash';
+import _, { now, times } from 'lodash';
 
 let historical_data_size        = 5;            // minutes
 const default_areas             = [];           // item : {zone_count, zone_name, zone_id}
@@ -57,8 +55,6 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
         // Updating chart with incoming data
         setViz (viz => {
             let new_viz = {
-                width   : getChartWidth(),
-                height  : viz.height,
                 data    : _.map (historical_data_cache, (h) => {
                     return h
                 })
@@ -102,7 +98,7 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
 
     React.useEffect(() => {
         if (sceneSettings.length > 0) {
-            
+
             // Setting up scene_zones
             _.map (sceneSettings, (d) => {
                 let item    = {
@@ -175,8 +171,10 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
         if (isReady) {
             const resizeChart = () => {
                 const domRect = chartRef.current.getBoundingClientRect();
+                let new_width   = domRect.width
+                let new_heigth  = new_width*6/16
                 setViz(viz => {
-                    return { ...viz, width: domRect.width }
+                    return { ...viz, width: new_width, height:new_heigth }
                 });
             }
             window.addEventListener("resize", resizeChart);
@@ -258,7 +256,7 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
                         </Card.Title>
                         <Card.Body>
                             <div className="chart-container">
-                                <StatsChart />
+                                <StatsChart astarte_client={astarteClient} device_id={deviceId} />
                             </div>
                         </Card.Body>
                     </Card>
@@ -354,14 +352,20 @@ const chartOptions = {
         text: 'People',
         align: 'left'
     },
-    xaxis: {
-        type: 'datetime',
-    },
     tooltip: {
         shared: false,
         y: {
             formatter: function (val) {
                 return (val).toFixed(0)
+            }
+        }
+    },
+    xaxis: {
+        type: 'datetime',
+        labels : {
+            formatter : (time) => {
+                let d   = new Date(time)
+                return `${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}`
             }
         }
     },
@@ -399,7 +403,7 @@ const DataChart = ({ data, width, height, isMount = false }) => {
     );
 
     return (
-        <Chart type="line" width={width} options={chartOptions} series={series} />
+        <Chart type="line" width={width} height={height} options={chartOptions} series={series} />
     );
 };
 
@@ -427,27 +431,28 @@ const stats_chart_options   = {
     title: {
         show    : false
     },
+    /*Has to be shown?
     tooltip: {
-        /* TODO
         shared: false,
         y: {
             formatter: function (val) {
                 return (val).toFixed(0)
             }
-        }*/
-    },
-    yaxis: {
-        /*TODO
+        }
+    },*/
+    xaxis: {
         labels: {
-            formatter: function (val) {
-                return (val).toFixed(0);
-            },
-        },*/
+            formatter: (t) => {
+                // TODO CHeck 'date_range' value to return the correct value
+                return t.toFixed(0)
+            }
+        }
     }
 }
 
 
-const StatsChart    = ({}) => {
+const StatsChart    = ({astarte_client, device_id}) => {
+    // FIXME Handle chart resize
     const [stats_chart_data, set_stats_data]    = React.useState ({data:[]})
     const [filter_grain, set_filter_grain]      = React.useState (0)                        // 0:hours, 1:weekdays, 2:moth days
     const [date_range, set_date_range]          = React.useState ([new Date(), new Date()]) // DatePicker result
@@ -471,24 +476,121 @@ const StatsChart    = ({}) => {
     ]
 
 
+    const range_normalizer  = () => {
+        start_date.setHours (0)
+        start_date.setMinutes (0)
+        start_date.setSeconds (0)
+        start_date.setMilliseconds (0)
+        end_date.setHours (0)
+        end_date.setMinutes (0)
+        end_date.setSeconds (0)
+        end_date.setMilliseconds (0)
+        end_date.setDate (end_date.getDate()+1)
+        end_date.setMilliseconds (end_date.getMilliseconds()-1)
+    }
+
+
+    const data_analyzer     = (data) => {
+        console.log ('date analyzer')
+        /* data item:
+            {
+                "people": [
+                    "{\"conf\":0.9543384313583374,\"id\":9566,\"pos_zone\":{\"id\":1,\"name\":\"uno\"}}",
+                    "{\"conf\":0.6809995770454407,\"id\":9568,\"pos_zone\":{\"id\":0,\"name\":\"zero\"}}"
+                ],
+                    "people_count": 2,
+                    "timestamp": "2022-03-03T13:01:53.722Z"
+            }
+         */
+        let item_per_unit   = []
+        let results         = []
+        
+        
+        if (filter_grain == 0) {
+            // Analyzing data basing on hours
+            // FIXME Sometimes NaN values returned
+            for (let i=0; i<24; i++) {
+                results[i]          = 0
+                item_per_unit[i]    = 0
+            }
+
+            _.map (data, (item, idx) => {
+                let curr_date   = new Date (item["timestamp"])
+                let item_hour   = Number (curr_date.toLocaleTimeString([], {hour: '2-digit'}))
+                results[item_hour] += item['people_count']
+                item_per_unit[item_hour] += 1
+            })
+        }
+        else if (filter_grain == 1) {
+            // TODO Analyzing data basing on weekdays
+            // FIXME NaN values returned
+            console.log (`Analyzing data basing on weekdays`)
+            for (let i=0; i<7; i++) {
+                results[i]          = 0
+                item_per_unit[i]    = 0
+            }
+
+            _.map (data, (item, idx) => {
+                let curr_date   = new Date (item["timestamp"])
+                let item_day    = curr_date.getDay()
+                results[item_day] += item['people_count']
+                item_per_unit[item_day] += 1
+                console.log (`curr_date`)
+                console.log (curr_date)
+                console.log (`item_day: ${item_day}`)
+            })
+        }
+        else if (filter_grain == 2) {
+            // TODO Implement me!!
+            console.log (`Analyzing data basing on months days`)
+        }
+        else {
+            console.error (`Invalid filter_grain value: ${filter_grain}`)
+        }
+
+        results = _.map (item_per_unit, (item, idx) => {
+            return {x:idx, y:Number((results[idx]/item).toFixed(2))}
+        })
+        console.log (results)
+
+        return results
+    }
+
+
     React.useEffect (() => {
         if (start_date != null && end_date != null) {
-            console.log (`Reloading stats data`)
-            set_stats_data (()=>{
-                let data    = []
-                for (let i=0; i<10; i++) {
-                    data.push ({x:i, y:Math.random()*100})
-                }
-                return data
+            range_normalizer ()
+            console.log (`Reloading stats data from ${start_date} to ${end_date}`)
+            let query_params    = {
+                deviceId    : device_id,
+                since       : start_date,
+                to          : end_date
+            }
+            set_stats_data (() => undefined)
+
+            /*console.log ("query_params")
+            console.log (query_params)*/
+            // FIXME Do not reset chart in some cases
+            astarte_client.getCameraData (query_params)
+            .then ((data) => {
+                console.log ("Retrieved this information")
+                console.log (data)
+
+                set_stats_data (()=>data_analyzer(data))
             })
+            .catch ((err) => {
+                console.error (`Cannot retrieve data fro msuch period`)
+                set_stats_data ([])
+            })
+        }
+        else {
+            set_stats_data ([])
         }
     }, [filter_grain, date_range])
     
 
     const series    = React.useMemo(
         () => {
-            console.log (`Inside memo`)
-            let data    = stats_chart_data
             return [
                 {
                     name    : "Average",
@@ -512,10 +614,37 @@ const StatsChart    = ({}) => {
     }
 
     const date_calculator   = () => {
-        // TODO Take into account 'filter_grain' variable
-        let start_date_str  = start_date==null?``:`${start_date.getDate()}/${start_date.getMonth()}/${start_date.getFullYear()}`
-        let end_date_str    = end_date==null?``:` - ${end_date.getDate()}/${end_date.getMonth()}/${end_date.getFullYear()}`
+        let start_date_str  = ""
+        let end_date_str    = ""
+        if (filter_grain == 2) {
+            // Displaying only month and year
+            start_date_str  = start_date==null?``:`${start_date.getMonth()+1}/${start_date.getFullYear()}`
+            end_date_str    = end_date==null?``:` - ${end_date.getMonth()+1}/${end_date.getFullYear()}`
+        }
+        else {
+            start_date_str  = start_date==null?``:`${start_date.getDate()}/${start_date.getMonth()+1}/${start_date.getFullYear()}`
+            end_date_str    = end_date==null?``:` - ${end_date.getDate()}/${end_date.getMonth()+1}/${end_date.getFullYear()}`
+        }
         return `${start_date_str}${end_date_str}`
+    }
+
+
+    const chart_provider    = () => {
+        console.log ('chart provider')
+        console.log (stats_chart_data)
+
+        if (stats_chart_data == undefined) {
+            return (<Spinner className="mt-5" animation="border" role="status">
+                <span className="visually-hidden">Loading...</span>
+            </Spinner>)
+        }
+        else if (stats_chart_data.length == 0) {
+            return (<strong className="text-warning mt-5">No data in selected interval</strong>)
+        }
+        else {
+            console.log (`there is something? ${stats_chart_data.length}`)
+            return (<Chart type="bar" options={stats_chart_options} series={series}/>)
+        }
     }
 
 
@@ -530,13 +659,12 @@ const StatsChart    = ({}) => {
                 <div className="m-2">
                     <style>{DatePickerStyle.toString()}</style>
                     {/*DATE PICKER*/}
-                    <DatePicker 
+                    <DatePicker
+                        showMonthYearPicker={filter_grain==2}
                         selectsRange={true}
                         startDate={start_date}
                         endDate={end_date}
                         onChange    = {(new_range) => {
-                            console.log (`new range!`)
-                            console.log (new_range)
                             set_date_range (new_range)
                         }} 
                         isClearable={true}
@@ -544,15 +672,17 @@ const StatsChart    = ({}) => {
                             <InputGroup>
                                     <InputGroup.Text>Period Range</InputGroup.Text>
                                     <FormControl aria-label="Minutes"
-                                                    onChange={() => {}}
+                                                    onChange={() => {/*Do nothing*/}}
                                                     value={date_calculator()}/>
                             </InputGroup>
                         }
                     />
                 </div>
             </Navbar>
-            
-            <Chart type="bar" options={stats_chart_options} series={series} />
+
+            <Container className="d-flex justify-content-center">
+                {chart_provider ()}
+            </Container>
         </Container>
     )
 }
