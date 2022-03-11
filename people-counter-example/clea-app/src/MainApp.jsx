@@ -491,7 +491,6 @@ const StatsChart    = ({astarte_client, device_id}) => {
 
 
     const data_analyzer     = (data) => {
-        console.log ('date analyzer')
         /* data item:
             {
                 "people": [
@@ -508,7 +507,6 @@ const StatsChart    = ({astarte_client, device_id}) => {
         
         if (filter_grain == 0) {
             // Analyzing data basing on hours
-            // FIXME Sometimes NaN values returned
             for (let i=0; i<24; i++) {
                 results[i]          = 0
                 item_per_unit[i]    = 0
@@ -522,9 +520,7 @@ const StatsChart    = ({astarte_client, device_id}) => {
             })
         }
         else if (filter_grain == 1) {
-            // TODO Analyzing data basing on weekdays
-            // FIXME NaN values returned
-            console.log (`Analyzing data basing on weekdays`)
+            // Analyzing data basing on weekdays
             for (let i=0; i<7; i++) {
                 results[i]          = 0
                 item_per_unit[i]    = 0
@@ -535,22 +531,34 @@ const StatsChart    = ({astarte_client, device_id}) => {
                 let item_day    = curr_date.getDay()
                 results[item_day] += item['people_count']
                 item_per_unit[item_day] += 1
-                console.log (`curr_date`)
-                console.log (curr_date)
                 console.log (`item_day: ${item_day}`)
             })
         }
         else if (filter_grain == 2) {
-            // TODO Implement me!!
-            console.log (`Analyzing data basing on months days`)
+            // Analyzing data basing on months days
+            for (let i=0; i<31; i++) {
+                results[i]          = 0
+                item_per_unit[i]    = 0
+            }
+
+            _.map (data, (item, idx) => {
+                let item_date   = new Date (item['timestamp']).getDate()
+                results[item_date] += item['people_count']
+                item_per_unit[item_date] += 1
+                console.log (`item_day: ${item_date}`)
+            })
         }
         else {
             console.error (`Invalid filter_grain value: ${filter_grain}`)
         }
 
         results = _.map (item_per_unit, (item, idx) => {
-            return {x:idx, y:Number((results[idx]/item).toFixed(2))}
+            return {
+                x:idx,
+                y:item==0 ? 0 : Number((results[idx]/item).toFixed(2))}
         })
+
+        console.log ('data_analyzer results:')
         console.log (results)
 
         return results
