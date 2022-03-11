@@ -43,23 +43,20 @@ const App = ({ astarteUrl, realm, token, deviceId }: AppProps) => {
         if (sceneSettings.length == 0) {
             let mount = true;
             const intervalID = setInterval(() => {
+                if (!mount)
+                    return
                 astarteClient
-                    .getSceneSettings({ deviceId })
-                    .then((data) => {
-                        if (mount) {
-                            setSceneSettings(data);
-                            astarteClient
-                                .getUpdateInterval({ deviceId })
-                                .then ((data) => {
-                                    setUpdateInterval(data)
-                                })
-                        }
+                    .getUpdateInterval({deviceId})
+                    .then ((data) => {
+                        setUpdateInterval(data)
+                        astarteClient
+                        .getSceneSettings({deviceId})
+                        .then((data) => {
+                            if (mount) {
+                                setSceneSettings(data);
+                            }
+                        })
                     })
-                    .catch(() => {
-                        if (mount) {
-                            setSceneSettings([]);
-                        }
-                    });
             }, 100);
 
             return () => {
