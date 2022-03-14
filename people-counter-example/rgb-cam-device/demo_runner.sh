@@ -12,6 +12,11 @@ if [ -z ${INTEL_OPENVINO_DIR+x} ] ; then
     exit
 fi
 
+CONFIG_FILE="$1"
+echo "Using this configuration file: $CONFIG_FILE\n"
+
+
+source /opt/intel/openvino_2021/bin/setupvars.sh
 
 # Extending environment variable LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=:/usr/local/lib
@@ -26,4 +31,4 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$INTEL_OPENVINO_DIR/deployment_tools/inf
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$INTEL_OPENVINO_DIR/deployment_tools/inference_engine/external/mkltiny_lnx/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$INTEL_OPENVINO_DIR/deployment_tools/inference_engine/lib/intel64
 
-./rgb-cam-people-counter-example $1
+./rgb-cam-people-counter-example $CONFIG_FILE
