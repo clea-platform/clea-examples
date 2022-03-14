@@ -1,6 +1,10 @@
 
 #!/bin/bash
 
+CONFIG_FILE="$1"
+echo -e "Using this configuration file: $CONFIG_FILE\n"
+
+
 if [[ $1 == "-h" || $1 == "--help" ]] ; then
     echo -e "People counter CLEA demo executor. Usage:\n\t\tbash demo_runner.sh [-h,--help] [settings_file]\n"
     echo -e "\t\t-h, --help\tDisplay this message\n\t\tsettings_file\tUse the provided settings file as demo settings file"
@@ -11,10 +15,6 @@ if [ -z ${INTEL_OPENVINO_DIR+x} ] ; then
     echo -e "VERY DANGEROUS: INTEL_OPENVINO_DIR environment variable NOT set"
     exit
 fi
-
-CONFIG_FILE="$1"
-echo "Using this configuration file: $CONFIG_FILE\n"
-
 
 source /opt/intel/openvino_2021/bin/setupvars.sh
 
