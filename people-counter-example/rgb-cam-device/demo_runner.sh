@@ -1,6 +1,8 @@
 
 #!/bin/bash
 
+source /opt/intel/openvino_2021/bin/setupvars.sh
+
 if [[ $1 == "-h" || $1 == "--help" ]] ; then
     echo -e "People counter CLEA demo executor. Usage:\n\t\tbash demo_runner.sh [-h,--help] [settings_file]\n"
     echo -e "\t\t-h, --help\tDisplay this message\n\t\tsettings_file\tUse the provided settings file as demo settings file"
