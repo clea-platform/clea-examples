@@ -8,7 +8,7 @@ import { FormattedMessage } from "react-intl";
 import Chart from "react-apexcharts";
 import DatePicker from "react-datepicker";
 import DatePickerStyle from "react-datepicker/dist/react-datepicker.css";
-import _, { now, times } from 'lodash';
+import _ from 'lodash';
 
 let historical_data_size        = 5;            // minutes
 const default_areas             = [];           // item : {zone_count, zone_name, zone_id}
@@ -19,6 +19,7 @@ let last_query_date             = undefined;
 
 
 export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId }) => {
+    const stats_chart_ref       = React.useRef(null);
     const chartRef              = React.useRef(null);
     const inputRef              = React.useRef(null);
     const [isReady, setIsReady] = React.useState(false);
@@ -255,8 +256,10 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
                             Average Presence
                         </Card.Title>
                         <Card.Body>
-                            <div className="chart-container">
-                                <StatsChart astarte_client={astarteClient} device_id={deviceId} />
+                            <div className="chart-container" ref={stats_chart_ref}>
+                                <Fragment>
+                                    <StatsChart astarte_client={astarteClient} device_id={deviceId} stats_chart_ref={stats_chart_ref} />
+                                </Fragment>
                             </div>
                         </Card.Body>
                     </Card>
@@ -444,6 +447,7 @@ const stats_chart_options   = {
         labels: {
             formatter: (t) => {
                 // TODO CHeck 'date_range' value to return the correct value
+                //console.log (t)
                 return t.toFixed(0)
             }
         }
@@ -451,9 +455,8 @@ const stats_chart_options   = {
 }
 
 
-const StatsChart    = ({astarte_client, device_id}) => {
-    // FIXME Handle chart resize
-    const [stats_chart_data, set_stats_data]    = React.useState ({data:[]})
+const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
+    const [stats_chart_desc, set_stats_desc]    = React.useState ({data:[], width:0, height:0})
     const [filter_grain, set_filter_grain]      = React.useState (0)                        // 0:hours, 1:weekdays, 2:moth days
     const [date_range, set_date_range]          = React.useState ([new Date(), new Date()]) // DatePicker result
     const [start_date, end_date]                = date_range;
@@ -558,14 +561,17 @@ const StatsChart    = ({astarte_client, device_id}) => {
                 y:item==0 ? 0 : Number((results[idx]/item).toFixed(2))}
         })
 
-        console.log ('data_analyzer results:')
-        console.log (results)
+        /*console.log ('data_analyzer results:')
+        console.log (results)*/
 
         return results
     }
 
 
     React.useEffect (() => {
+        console.log (`sd: ${start_date}`)
+        console.log (`ed: ${end_date}`)
+        
         if (start_date != null && end_date != null) {
             range_normalizer ()
             console.log (`Reloading stats data from ${start_date} to ${end_date}`)
@@ -574,27 +580,52 @@ const StatsChart    = ({astarte_client, device_id}) => {
                 since       : start_date,
                 to          : end_date
             }
-            set_stats_data (() => undefined)
+            //set_stats_data (() => undefined)
 
             /*console.log ("query_params")
             console.log (query_params)*/
-            // FIXME Do not reset chart in some cases
-            astarte_client.getCameraData (query_params)
+            //astarte_client.getCameraData (query_params)
+            astarte_client.getMultipleCameraData (query_params)
             .then ((data) => {
-                console.log ("Retrieved this information")
-                console.log (data)
+                /*console.log ("Retrieved this information")
+                console.log (data)*/
 
-                set_stats_data (()=>data_analyzer(data))
+                // set_stats_data (()=>data_analyzer(data))
+                set_stats_desc ((desc) => {return {...desc, data:data_analyzer(data)}})
             })
             .catch ((err) => {
                 console.error (`Cannot retrieve data fro msuch period`)
-                set_stats_data ([])
+                // set_stats_data ([])
+                set_stats_desc ((desc) => {return {...desc, data:[]}})
             })
         }
+        else if (start_date != null || end_date != null) {
+            // Do nothing
+        }
         else {
-            set_stats_data ([])
+            set_stats_desc ((desc) => {return {...desc, data:[]}})
         }
     }, [filter_grain, date_range])
+
+
+    React.useEffect (() => {
+        console.log (`Called effect!\n\n`)
+        if (stats_chart_ref.current) {
+            const resizeChart = () => {
+                const dom_rect  = stats_chart_ref.current.getBoundingClientRect();
+                let new_width   = dom_rect.width
+                let new_heigth  = new_width*6/16
+                console.log (`New size: (${new_width}, ${new_heigth})`)
+                set_stats_desc ((desc) => {return {...desc, width:new_width, height:new_heigth}})
+            }
+            window.addEventListener("resize", resizeChart);
+            resizeChart ();
+
+            return () => {
+                window.removeEventListener("resize", resizeChart, false);
+            }
+        }
+    }, [stats_chart_ref])
     
 
     const series    = React.useMemo(
@@ -602,7 +633,7 @@ const StatsChart    = ({astarte_client, device_id}) => {
             return [
                 {
                     name    : "Average",
-                    data    : _.map (stats_chart_data, (item) => item)
+                    data    : _.map (stats_chart_desc.data, (item) => item)
                 }
             ]
         }
@@ -637,21 +668,23 @@ const StatsChart    = ({astarte_client, device_id}) => {
     }
 
 
-    const chart_provider    = () => {
-        console.log ('chart provider')
-        console.log (stats_chart_data)
+    const chart_provider    = (data) => {
+        // console.log (`I'm chart provider`)
+        // console.log (data)
 
-        if (stats_chart_data == undefined) {
+        if (data == undefined) {
+            console.log (`Undefined data!`)
             return (<Spinner className="mt-5" animation="border" role="status">
                 <span className="visually-hidden">Loading...</span>
             </Spinner>)
         }
-        else if (stats_chart_data.length == 0) {
+        else if (data.length == 0) {
+            console.log (`Zero data!`)
             return (<strong className="text-warning mt-5">No data in selected interval</strong>)
         }
         else {
-            console.log (`there is something? ${stats_chart_data.length}`)
-            return (<Chart type="bar" options={stats_chart_options} series={series}/>)
+            console.log (`${data.length} items`)
+            return (<Chart type="bar" options={stats_chart_options} series={series} width={stats_chart_desc.width} height={stats_chart_desc.height}/>) // FIXME Add chart dimensions
         }
     }
 
@@ -689,7 +722,7 @@ const StatsChart    = ({astarte_client, device_id}) => {
             </Navbar>
 
             <Container className="d-flex justify-content-center">
-                {chart_provider ()}
+                {chart_provider (stats_chart_desc.data)}
             </Container>
         </Container>
     )
