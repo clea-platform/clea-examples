@@ -434,21 +434,19 @@ const stats_chart_options   = {
     title: {
         show    : false
     },
-    /*Has to be shown?
     tooltip: {
+        enabled : false,
         shared: false,
         y: {
             formatter: function (val) {
                 return (val).toFixed(0)
             }
         }
-    },*/
+    },
     xaxis: {
         labels: {
             formatter: (t) => {
-                // TODO CHeck 'date_range' value to return the correct value
-                //console.log (t)
-                return t.toFixed(0)
+                return t
             }
         }
     }
@@ -456,7 +454,7 @@ const stats_chart_options   = {
 
 
 const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
-    const [stats_chart_desc, set_stats_desc]    = React.useState ({data:[], width:0, height:0})
+    const [stats_chart_desc, set_stats_desc]    = React.useState ({data:undefined, width:0, height:0})
     const [filter_grain, set_filter_grain]      = React.useState (0)                        // 0:hours, 1:weekdays, 2:moth days
     const [date_range, set_date_range]          = React.useState ([new Date(), new Date()]) // DatePicker result
     const [start_date, end_date]                = date_range;
@@ -490,6 +488,41 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
         end_date.setMilliseconds (0)
         end_date.setDate (end_date.getDate()+1)
         end_date.setMilliseconds (end_date.getMilliseconds()-1)
+    }
+
+
+    const value_to_axis_text    = (t) => {
+        console.log ('value_to_axis_text')
+        switch (filter_grain) {
+            case 0 :
+                return `${t}`;
+
+            case 1 : {
+                if (t==0)
+                    return 'Sunday';
+                if (t==1)
+                    return 'Monday';
+                if (t==2)
+                    return 'Tuesday';
+                if (t==3)
+                    return 'Wednesday'
+                if (t==4)
+                    return 'Thursday';
+                if (t==5)
+                    return 'Friday';
+                if (t==6)
+                    return 'Saturday';
+
+                return undefined;
+            }
+
+            case 2 :
+                return `${t+1}`;
+            
+
+            default :
+                return undefined
+        }
     }
 
 
@@ -555,9 +588,12 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
             console.error (`Invalid filter_grain value: ${filter_grain}`)
         }
 
+        console.log (`Building results\n\tfg: ${filter_grain}\n\tlen: ${item_per_unit.length}`)
         results = _.map (item_per_unit, (item, idx) => {
             return {
-                x:idx,
+                // Considering 'filter_grain' value to specify the 'x' value
+                x:value_to_axis_text(idx),
+                // x:'lol',
                 y:item==0 ? 0 : Number((results[idx]/item).toFixed(2))}
         })
 
@@ -569,9 +605,7 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
 
 
     React.useEffect (() => {
-        console.log (`sd: ${start_date}`)
-        console.log (`ed: ${end_date}`)
-        
+
         if (start_date != null && end_date != null) {
             range_normalizer ()
             console.log (`Reloading stats data from ${start_date} to ${end_date}`)
@@ -684,7 +718,7 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
         }
         else {
             console.log (`${data.length} items`)
-            return (<Chart type="bar" options={stats_chart_options} series={series} width={stats_chart_desc.width} height={stats_chart_desc.height}/>) // FIXME Add chart dimensions
+            return (<Chart type="bar" options={stats_chart_options} series={series} width={stats_chart_desc.width} height={stats_chart_desc.height}/>)
         }
     }
 
@@ -712,8 +746,7 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
                         customInput={
                             <InputGroup>
                                     <InputGroup.Text>Period Range</InputGroup.Text>
-                                    <FormControl aria-label="Minutes"
-                                                    onChange={() => {/*Do nothing*/}}
+                                    <FormControl onChange={() => {/*Do nothing*/}}
                                                     value={date_calculator()}/>
                             </InputGroup>
                         }
