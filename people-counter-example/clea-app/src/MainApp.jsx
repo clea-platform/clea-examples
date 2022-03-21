@@ -231,8 +231,8 @@ export const MainApp = ({ sceneSettings, updateInterval, astarteClient, deviceId
                             <Card.Body>
                                 
                                 <InputGroup className="mb-3">
-                                    <InputGroup.Text>Chart History Size</InputGroup.Text>
-                                    <FormControl aria-label="Minutes" /*value={HISTORICAL_MINUTES_LIMIT}*/
+                                    <InputGroup.Text>Chart History Size (minutes)</InputGroup.Text>
+                                    <FormControl aria-label="Minutes" defaultValue={historical_data_size}
                                                 ref={inputRef}/>
                                     <Button variant="outline-secondary" id="history-update-id"
                                             onClick={onHistoricalDataSizeUpdate}>
@@ -482,17 +482,26 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
         start_date.setMinutes (0)
         start_date.setSeconds (0)
         start_date.setMilliseconds (0)
+
         end_date.setHours (0)
         end_date.setMinutes (0)
         end_date.setSeconds (0)
         end_date.setMilliseconds (0)
         end_date.setDate (end_date.getDate()+1)
         end_date.setMilliseconds (end_date.getMilliseconds()-1)
+
+        if (filter_grain == 2) {
+            // Searching from monthly data
+            start_date.setDate (1)
+
+            end_date.setMonth (end_date.getMonth()+1)
+            end_date.setDate (1)
+            end_date.setDate (end_date.getDate()-1)
+        }
     }
 
 
     const value_to_axis_text    = (t) => {
-        console.log ('value_to_axis_text')
         switch (filter_grain) {
             case 0 :
                 return `${t}`;
@@ -588,7 +597,7 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
             console.error (`Invalid filter_grain value: ${filter_grain}`)
         }
 
-        console.log (`Building results\n\tfg: ${filter_grain}\n\tlen: ${item_per_unit.length}`)
+        //console.log (`Building results\n\tfg: ${filter_grain}\n\tlen: ${item_per_unit.length}`)
         results = _.map (item_per_unit, (item, idx) => {
             return {
                 // Considering 'filter_grain' value to specify the 'x' value
@@ -611,25 +620,23 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
             console.log (`Reloading stats data from ${start_date} to ${end_date}`)
             let query_params    = {
                 deviceId    : device_id,
-                since       : start_date,
-                to          : end_date
+                since       : new Date(start_date),
+                to          : new Date(end_date)
             }
-            //set_stats_data (() => undefined)
+            set_stats_desc ((desc) => {return {...desc, data:undefined}})
 
-            /*console.log ("query_params")
-            console.log (query_params)*/
-            //astarte_client.getCameraData (query_params)
             astarte_client.getMultipleCameraData (query_params)
             .then ((data) => {
                 /*console.log ("Retrieved this information")
                 console.log (data)*/
 
-                // set_stats_data (()=>data_analyzer(data))
-                set_stats_desc ((desc) => {return {...desc, data:data_analyzer(data)}})
+                if (data.length == 0)
+                    set_stats_desc ((desc) => {return {...desc, data:[]}})
+                else
+                    set_stats_desc ((desc) => {return {...desc, data:data_analyzer(data)}})
             })
             .catch ((err) => {
                 console.error (`Cannot retrieve data fro msuch period`)
-                // set_stats_data ([])
                 set_stats_desc ((desc) => {return {...desc, data:[]}})
             })
         }
@@ -643,13 +650,12 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
 
 
     React.useEffect (() => {
-        console.log (`Called effect!\n\n`)
         if (stats_chart_ref.current) {
             const resizeChart = () => {
                 const dom_rect  = stats_chart_ref.current.getBoundingClientRect();
                 let new_width   = dom_rect.width
                 let new_heigth  = new_width*6/16
-                console.log (`New size: (${new_width}, ${new_heigth})`)
+                //console.log (`New size: (${new_width}, ${new_heigth})`)
                 set_stats_desc ((desc) => {return {...desc, width:new_width, height:new_heigth}})
             }
             window.addEventListener("resize", resizeChart);
@@ -707,7 +713,6 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
         // console.log (data)
 
         if (data == undefined) {
-            console.log (`Undefined data!`)
             return (<Spinner className="mt-5" animation="border" role="status">
                 <span className="visually-hidden">Loading...</span>
             </Spinner>)
@@ -717,7 +722,6 @@ const StatsChart    = ({astarte_client, device_id, stats_chart_ref}) => {
             return (<strong className="text-warning mt-5">No data in selected interval</strong>)
         }
         else {
-            console.log (`${data.length} items`)
             return (<Chart type="bar" options={stats_chart_options} series={series} width={stats_chart_desc.width} height={stats_chart_desc.height}/>)
         }
     }
