@@ -100,7 +100,8 @@ class AstarteClient {
 
 
     async getMultipleCameraData ({deviceId, since, to}:MultipleCameraDataParameters) {
-        // TODO Retrieving camera data day per day
+        // Retrieving camera data 12 hours for 12 jours
+        const PROMISES_MAX_LENGTH               = 50;
         const { appEngineUrl, realm, token }    = this.config;
         const interfaceName                     = "ai.clea.examples.PeopleCounter";
         const path                              = `appengine/v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}/camera`;
@@ -110,21 +111,18 @@ class AstarteClient {
         let results                             = [];
         let tmp_start_date                      = new Date(since);
         let tmp_end_date                        = new Date(since);
-        tmp_end_date.setDate(tmp_end_date.getDate()+1);
-        tmp_end_date.setSeconds(tmp_end_date.getSeconds()-1);
-        //tmp_end_date.setHours(tmp_end_date.getHours()+12);
+        tmp_end_date.setHours(tmp_end_date.getHours()+12);
 
         while (tmp_start_date < to) {
             if (tmp_end_date>to) {
-                tmp_end_date    = to
+                tmp_end_date    = new Date(to)
             }
+            
             const query: Record<string, string> = {};
             query.since                         = tmp_start_date.toISOString();
             query.to                            = tmp_end_date.toISOString();
             requestUrl.search = new URLSearchParams(query).toString();
-            
-            //console.log (`temp url: ${requestUrl.toString()}`)
-            console.log (`since: ${tmp_start_date}\nto: ${tmp_end_date}\n\n`)
+
             promises.push (axios({
                 method  : 'get',
                 url     : requestUrl.toString(),
@@ -134,19 +132,36 @@ class AstarteClient {
                 }
             }))
 
-            // Updating start amd end date
-            tmp_start_date.setDate(tmp_start_date.getDate()+1)
-            tmp_end_date.setDate(tmp_end_date.getDate()+1)
-            /*tmp_start_date.setHours(tmp_start_date.getHours()+12)
-            tmp_end_date.setHours(tmp_end_date.getHours()+12);*/
+            // Updating start and end date
+            tmp_start_date.setHours(tmp_start_date.getHours()+12)
+            tmp_end_date.setHours(tmp_end_date.getHours()+12);
 
-            await this.sleep (1000)
+            // Checking if promises has to be awaitied
+            if (promises.length > PROMISES_MAX_LENGTH) {
+                for (let i in promises) {
+                    try {
+                        let res = await promises[i]
+                        for (let ri in res.data.data) {
+                            let item        = res.data.data[ri]
+                            results.push ({
+                                people          : item.people,
+                                people_count    : item.people_count,
+                                timestamp       : item.timestamp
+                            })
+                        }
+                    } catch (err) {
+                        // Do nothing
+                        console.warn (`Catched an error`)
+                    }
+                }
+                promises    = []
+            }
         }
 
+        // Awaiting remaining promises
         for (let i in promises) {
             try {
                 let res = await promises[i]
-                //console.log (res)
                 for (let ri in res.data.data) {
                     let item        = res.data.data[ri]
                     results.push ({
