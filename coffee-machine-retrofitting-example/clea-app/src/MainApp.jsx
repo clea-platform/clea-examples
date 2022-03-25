@@ -448,9 +448,11 @@ let get_all_data_since  = async (astarte_client, device_id, since) => {
         short_coffee        : [],
         long_coffee         : [],
     }
-    
-    let container_status    = astarte_client.get_container_status ({device_id, limit:1})
-    let water_status        = astarte_client.get_water_status ({device_id, limit:1})
+
+    let since_status        = new Date (since)
+    since_status.setHours(since_status.getHours()-24)
+    let container_status    = astarte_client.get_container_status ({device_id, limit:1, since:since_status})
+    let water_status        = astarte_client.get_water_status ({device_id, limit:1, since:since_status})
     // Short coffee and long coffee requests are not prepared here because they may throw errors
     
     try {
