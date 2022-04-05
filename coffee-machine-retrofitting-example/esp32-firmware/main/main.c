@@ -45,7 +45,7 @@ static void event_handler (void *arg, esp_event_base_t event_base,
 
 static void coffee_machine_event_handler (void *arg, esp_event_base_t event_base,
                                             int32_t event_id, void *event_data) {
-    ESP_LOGI(TAG, "COFFEE_MACHINE SENSOR EVENT: %d %s", event_id, get_event_name(event_id));
+    //ESP_LOGI(TAG, "COFFEE_MACHINE SENSOR EVENT: %d %s", event_id, get_event_name(event_id));
     AstarteHandler *astarte_handler = (AstarteHandler *) arg;
 
     if (astarte_handler) {
