@@ -111,9 +111,7 @@ AstarteHandler *astarteHandler_init() {
     astarte_credentials_use_nvs_storage(NVS_PARTITION);
     astarte_credentials_init();
 
-    //char *encoded_hwid = astarteHandler_get_hardware_id_encoded();
-    //CLEA char *encoded_hwid  = "ZMOb92YKQNapA1B5pZay8Q";
-    char *encoded_hwid  = "STRctqEMS4q62sM4VcyV2A";
+    char *encoded_hwid = astarteHandler_get_hardware_id_encoded();
 
     if (!encoded_hwid) {
         goto astarte_init_error;
@@ -128,7 +126,7 @@ AstarteHandler *astarteHandler_init() {
     };
 
     device = astarte_device_init(&cfg);
-    //free(encoded_hwid);
+    free(encoded_hwid);
 
     if (!device) {
         ESP_LOGE(TAG, "Cannot to init astarte device");
