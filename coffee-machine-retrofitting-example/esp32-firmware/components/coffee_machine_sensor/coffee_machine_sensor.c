@@ -6,13 +6,10 @@
 #include "freertos/task.h"
 #include <driver/adc.h>
 #include <string.h>
+#include <esp_system.h>
 
-#define GPIO_LED_PIN_SEL    ((1ULL<<GPIO_WATER_LED) | (1ULL<<GPIO_CONTAINER_LED))
-#define COFFEE_VALUE_TRIGGER 500
 
 ESP_EVENT_DEFINE_BASE(COFFEE_MACHINE_SENSOR_EVENTS);
-const static char *TAG = "Coffee_Sensor";
-static xQueueHandle gpio_led_evt_queue = NULL;
 
 
 const char *get_event_name(coffee_machine_event event) {
@@ -41,6 +38,203 @@ const char *get_event_name(coffee_machine_event event) {
    
     return "";
 }
+
+
+
+
+// ==================================
+//      EMULATED COFFEE MACHINE
+// ==================================
+#if CONFIG_COFFEE_MACHINE_SENSOR == 0
+
+
+
+
+const static char* TAG                      = "Emulated coffee machine";
+static xQueueHandle gpio_buttons_evt_queue  = NULL;
+int64_t last_short_coffee_isr_us            = 0;
+int64_t last_long_coffee_isr_us             = 0;
+
+typedef struct {
+    uint32_t gpio_num;
+    int64_t trigger_time_us;
+} QueueItem;
+
+
+
+
+static void IRAM_ATTR gpio_button_isr_handler (void* arg) {
+    QueueItem item;
+    memset (&item, '\0', sizeof(item));
+    item.gpio_num           = (uint32_t) arg;
+    item.trigger_time_us    = esp_timer_get_time ();
+    xQueueSendFromISR (gpio_buttons_evt_queue, &item, NULL);
+}
+
+
+void queue_consumer_task (void* arg) {
+    QueueItem item;
+    memset (&item, '\0', sizeof(item));
+    
+    while (1) {
+        if (xQueueReceive(gpio_buttons_evt_queue, &item, portMAX_DELAY)) {
+            switch (item.gpio_num) {
+            case GPIO_SINGLE_SHORT_COFFEE_BUTTON:
+                if (item.trigger_time_us - last_short_coffee_isr_us > MIN_DELAY_ISR_TRIGGER_US) {
+                    last_short_coffee_isr_us    = item.trigger_time_us;
+                    esp_event_post(COFFEE_MACHINE_SENSOR_EVENTS, COFFEE_SHORT_EVENT, NULL, 0, 0);
+                    //ESP_LOGI (TAG, "Short coffee delivered!");
+                }
+                else {
+                    // Ignoring trigger
+                    ESP_LOGW (TAG, "Ignoring trigger on gpio #%d", item.gpio_num);
+                }
+                break;
+            case GPIO_SINGLE_LONG_COFFEE_BUTTON:
+                if (item.trigger_time_us - last_long_coffee_isr_us > MIN_DELAY_ISR_TRIGGER_US) {
+                    last_long_coffee_isr_us     = item.trigger_time_us;
+                    esp_event_post(COFFEE_MACHINE_SENSOR_EVENTS, COFFEE_LONG_EVENT, NULL, 0, 0);
+                    //ESP_LOGI (TAG, "Long coffee delivered!");
+                }
+                else {
+                    // Ignoring trigger
+                    ESP_LOGW (TAG, "Ignoring trigger on gpio #%d", item.gpio_num);
+                }
+                break;
+
+            default:
+                break;
+            }
+       }
+       
+       vTaskDelay(100 / portTICK_PERIOD_MS);
+   }
+}
+
+
+void containers_buttons_monitor (void* arg) {
+    // Setting up containers GPIOs
+    gpio_pad_select_gpio (GPIO_WATER_CONTAINER_BUTTON);
+    uint64_t water_gpio_up_start_us = 0;
+    uint8_t water_alarm_triggered   = 0;
+    int64_t curr_time_us            = esp_timer_get_time ();
+
+    while (1) {
+        curr_time_us    = esp_timer_get_time ();
+
+        if (gpio_get_level(GPIO_WATER_CONTAINER_BUTTON)) {
+            // Triggering event only if it remains up for at least 
+            if (curr_time_us - water_gpio_up_start_us > MIN_DELAY_WATER_CONTAINER_US && !water_alarm_triggered) {
+                esp_event_post(COFFEE_MACHINE_SENSOR_EVENTS, WATER_OPEN_ALARM_EVENT, NULL, 0, 0);
+                ESP_LOGE (TAG, "Water container is opened!");
+                water_alarm_triggered   = 1;
+            }
+        }
+        else if (curr_time_us - water_gpio_up_start_us > MIN_DELAY_WATER_CONTAINER_US && water_alarm_triggered) {
+            esp_event_post(COFFEE_MACHINE_SENSOR_EVENTS, WATER_OFF_ALARM_EVENT, NULL, 0, 0);
+            ESP_LOGI (TAG, "Water container closed");
+            water_gpio_up_start_us  = curr_time_us;
+            water_alarm_triggered   = 0;
+        }
+        else {
+            water_gpio_up_start_us  = curr_time_us;
+        }
+
+        vTaskDelay (pdMS_TO_TICKS(100));
+    }
+}
+
+
+void led_blinker (void* _gpio_num) {
+    while (1) {
+        gpio_set_level (GPIO_YELLOW_LED, 0);
+
+        gpio_set_level (GPIO_BLUE_LED, 1);
+        vTaskDelay (pdMS_TO_TICKS(128));
+        gpio_set_level (GPIO_BLUE_LED, 0);
+        vTaskDelay (pdMS_TO_TICKS(128));
+        gpio_set_level (GPIO_BLUE_LED, 1);
+        vTaskDelay (pdMS_TO_TICKS(128));
+        gpio_set_level (GPIO_BLUE_LED, 0);
+
+        gpio_set_level (GPIO_YELLOW_LED, 1);
+        vTaskDelay (pdMS_TO_TICKS(4096));
+    }
+}
+
+
+void init_machine_coffee_sensor () {
+    ESP_LOGI (TAG, "Initializing coffee machine sensor");
+    
+    gpio_config_t gpio_conf;
+
+
+    // Enabling output power on GPIO
+    gpio_conf.intr_type     = GPIO_PIN_INTR_DISABLE;
+    gpio_conf.mode          = GPIO_MODE_OUTPUT;
+    gpio_conf.pin_bit_mask  = (1ULL << GPIO_POWER_OUT_ENABLE);
+    gpio_conf.pull_down_en  = GPIO_PULLDOWN_DISABLE;
+    gpio_conf.pull_up_en    = GPIO_PULLUP_DISABLE;
+    gpio_config(&gpio_conf);
+    gpio_set_level(GPIO_POWER_OUT_ENABLE, 0);
+
+
+    // Make blinking LEDs
+    memset (&gpio_conf, '\0', sizeof(gpio_conf));
+    gpio_conf.pin_bit_mask  = (1ULL << GPIO_YELLOW_LED) | (1ULL << GPIO_BLUE_LED);
+    gpio_conf.mode          = GPIO_MODE_OUTPUT;
+    gpio_conf.pull_up_en    = GPIO_PULLUP_DISABLE;
+    gpio_conf.pull_down_en  = GPIO_PULLDOWN_DISABLE;
+    gpio_conf.intr_type     = GPIO_PIN_INTR_DISABLE;
+    gpio_config (&gpio_conf);
+    xTaskCreate (led_blinker, "led_blinker_task", 2048, NULL, 10, NULL);
+
+
+    // Creating queue for buttons events
+    gpio_buttons_evt_queue  = xQueueCreate(1, sizeof(QueueItem));
+    xTaskCreate (queue_consumer_task, "queue_consumer_task", 2048, NULL, 10, NULL);
+    // Setting up buttons GPIOs
+    memset (&gpio_conf, '\0', sizeof(gpio_conf));
+    gpio_conf.pin_bit_mask  = (1ULL << GPIO_SINGLE_SHORT_COFFEE_BUTTON) | (1ULL << GPIO_SINGLE_LONG_COFFEE_BUTTON);
+    gpio_conf.mode          = GPIO_MODE_INPUT;
+    gpio_conf.pull_up_en    = GPIO_PULLUP_DISABLE;
+    gpio_conf.pull_down_en  = GPIO_PULLDOWN_DISABLE;
+    gpio_conf.intr_type     = GPIO_INTR_NEGEDGE;
+    gpio_config(&gpio_conf);
+    // Registering ISRs for buttons events
+    last_short_coffee_isr_us    = esp_timer_get_time ();
+    last_long_coffee_isr_us     = esp_timer_get_time ();
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(GPIO_SINGLE_SHORT_COFFEE_BUTTON, gpio_button_isr_handler, (void*) GPIO_SINGLE_SHORT_COFFEE_BUTTON);
+    gpio_isr_handler_add(GPIO_SINGLE_LONG_COFFEE_BUTTON, gpio_button_isr_handler, (void*) GPIO_SINGLE_LONG_COFFEE_BUTTON);
+
+
+    // Creating monitor task for containers buttons
+    xTaskCreate (containers_buttons_monitor, "containers_buttons_monitor", 2048, NULL, 10, NULL);
+
+    esp_event_post(COFFEE_MACHINE_SENSOR_EVENTS, WATER_OFF_ALARM_EVENT, NULL, 0, 0);
+    esp_event_post(COFFEE_MACHINE_SENSOR_EVENTS, CONTAINER_OFF_ALARM_EVENT, NULL, 0, 0);
+
+
+    ESP_LOGI (TAG, "Waiting for beverages requests..\n\n");
+}
+
+
+
+
+// ==================================
+//      DELONGHI COFFEE MACHINE
+// ==================================
+#elif CONFIG_COFFEE_MACHINE_SENSOR == 1
+
+
+
+
+#define GPIO_LED_PIN_SEL    ((1ULL<<GPIO_WATER_LED) | (1ULL<<GPIO_CONTAINER_LED))
+#define COFFEE_VALUE_TRIGGER 500
+
+const static char *TAG = "DeLonghi coffee machine";
+static xQueueHandle gpio_led_evt_queue = NULL;
 
 
 static void IRAM_ATTR gpio_led_isr_handler (void* arg) {
@@ -187,6 +381,8 @@ void adc_bnt_long_task()
 
 
 void init_machine_coffee_sensor(){
+    ESP_LOGI (TAG, "Setting up this coffee machine sensor: %d", CONFIG_COFFEE_MACHINE_SENSOR);
+
     gpio_config_t gpio_led_conf;
 
     gpio_led_conf.pin_bit_mask = GPIO_LED_PIN_SEL;
@@ -215,3 +411,7 @@ void init_machine_coffee_sensor(){
     ESP_LOGI(TAG, " adc_reader_task started");
 }
 
+
+
+
+#endif
