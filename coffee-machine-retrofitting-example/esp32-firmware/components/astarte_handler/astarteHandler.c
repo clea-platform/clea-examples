@@ -8,6 +8,8 @@
 #include "mbedtls/base64.h"
 #include <astarte_bson_serializer.h>
 #include <uuid.h>
+#include <nvs_flash.h>
+#include <nvs.h>
 
 #define EXAMPLE_UUID "37119eb1-84fc-4e4b-97de-0b18ab1a49f1"
 #define MAC_LENGTH 6
@@ -24,8 +26,9 @@ bool stop(AstarteHandler *this);
 void publish_event(AstarteHandler *this, coffee_machine_event event);
 
 struct _privateData{
-    int short_coffee_cnt;
-    int long_coffee_cnt;
+    nvs_handle_t nvs_handle;
+    int32_t short_coffee_cnt;
+    int32_t long_coffee_cnt;
 };
 
 
@@ -55,13 +58,13 @@ static void astarte_data_events_handler (astarte_device_data_event_t *event) {
 
 static void astarte_connection_events_handler() {
     esp_event_post(ASTARTE_EVENTS, ASTARTE_EVENT_CONNECT, NULL, 0, 0);
-    ESP_LOGI(TAG, "on_connected");
 }
 
 
 static void astarte_disconnection_events_handler() {
     esp_event_post(ASTARTE_EVENTS, ASTARTE_EVENT_CONNECT, NULL, 0, 0);
-    ESP_LOGW(TAG, "on_disconnected");
+    ESP_LOGW(TAG, "ASTARTE DISCONNECTED!");
+    // FIXME Try to perform a connection
 }
 
 
@@ -81,6 +84,22 @@ esp_err_t add_interfaces (astarte_device_handle_t device) {
             machine_status_interface.name, ret);
         return ESP_FAIL;
     }
+
+    return ESP_OK;
+}
+
+
+esp_err_t update_counter (nvs_handle_t* nvs_handle, int32_t* counter, int32_t new_value, char* nvs_key) {
+    esp_err_t esp_err   = ESP_OK;
+
+    if ((esp_err=nvs_set_i32 (*nvs_handle, nvs_key, new_value)) != ESP_OK) {
+        return esp_err;
+    }
+    if ((esp_err=nvs_commit (*nvs_handle)) != ESP_OK) {
+        return esp_err;
+    }
+
+    *counter    = new_value;
 
     return ESP_OK;
 }
@@ -128,8 +147,27 @@ AstarteHandler *astarteHandler_init() {
         goto astarte_init_error;
     }
 
-    astarte_handler->private_data->short_coffee_cnt= 0;
-    astarte_handler->private_data->long_coffee_cnt= 0;
+    // Opening NVS
+    esp_err_t esp_err       = nvs_open ("counters_part", NVS_READWRITE, &(astarte_handler->private_data->nvs_handle));
+    ESP_ERROR_CHECK (esp_err);
+    // Loading counters from NVS
+    esp_err = nvs_get_i32 (astarte_handler->private_data->nvs_handle, "ss_coffee",
+                            &(astarte_handler->private_data->short_coffee_cnt));
+    if (esp_err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW (TAG, "ss_coffee key not present in NVS. Setting its value to 0");
+        ESP_ERROR_CHECK (update_counter (&(astarte_handler->private_data->nvs_handle),
+                                            &(astarte_handler->private_data->short_coffee_cnt), 0, "ss_coffee"));
+    }
+    esp_err = nvs_get_i32 (astarte_handler->private_data->nvs_handle, "sl_coffee",
+                            &(astarte_handler->private_data->long_coffee_cnt));
+    if (esp_err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW (TAG, "sl_coffee key not present in NVS. Setting its value to 0");
+        ESP_ERROR_CHECK (update_counter (&(astarte_handler->private_data->nvs_handle),
+                                            &(astarte_handler->private_data->long_coffee_cnt), 0, "sl_coffee"));
+    }
+
+    ESP_LOGI (TAG, "Counters are\n\tssc: %d\n\tslc: %d", astarte_handler->private_data->short_coffee_cnt,
+                                                            astarte_handler->private_data->long_coffee_cnt);
 
     astarte_handler->astarteDeviceHandle = device;
     astarte_handler->start = &start;
@@ -159,6 +197,7 @@ bool start (AstarteHandler *this) {
 
 
 void publish_event (AstarteHandler *this, coffee_machine_event event) {
+    
     switch (event) {
         case CONTAINER_OFF_ALARM_EVENT:
             astarte_device_stream_string(this->astarteDeviceHandle, machine_status_interface.name, "/containerStatus", "CONTAINER_OFF_ALARM_EVENT", 0);
@@ -179,11 +218,13 @@ void publish_event (AstarteHandler *this, coffee_machine_event event) {
             astarte_device_stream_string(this->astarteDeviceHandle, machine_status_interface.name, "/waterStatus", "WATER_OPEN_ALARM_EVENT", 0);
             break;
         case COFFEE_SHORT_EVENT:
-            this->private_data->short_coffee_cnt++;
+            ESP_ERROR_CHECK (update_counter (&(this->private_data->nvs_handle), &(this->private_data->short_coffee_cnt),
+                                                this->private_data->short_coffee_cnt+1, "ss_coffee"));
             astarte_device_set_integer_property(this->astarteDeviceHandle, machine_counters_interface.name, "/shortCoffee", this->private_data->short_coffee_cnt);
             break;
         case COFFEE_LONG_EVENT:
-            this->private_data->long_coffee_cnt++;
+            ESP_ERROR_CHECK (update_counter (&(this->private_data->nvs_handle), &(this->private_data->long_coffee_cnt),
+                                                this->private_data->long_coffee_cnt+1, "ss_coffee"));
             astarte_device_set_integer_property(this->astarteDeviceHandle, machine_counters_interface.name, "/longCoffee", this->private_data->long_coffee_cnt);
             break;
         default:

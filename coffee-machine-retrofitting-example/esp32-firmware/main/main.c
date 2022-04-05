@@ -1,5 +1,5 @@
 
-#include "coffee_machine_sensor.h"
+#include <coffee_machine_sensor.h>
 #include "driver/i2c.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -45,7 +45,7 @@ static void event_handler (void *arg, esp_event_base_t event_base,
 
 static void coffee_machine_event_handler (void *arg, esp_event_base_t event_base,
                                             int32_t event_id, void *event_data) {
-    ESP_LOGI(TAG, "COFFEE_MACHINE SENSOR EVENT: %d %s", event_id, get_event_name(event_id));
+    //ESP_LOGI(TAG, "COFFEE_MACHINE SENSOR EVENT: %d %s", event_id, get_event_name(event_id));
     AstarteHandler *astarte_handler = (AstarteHandler *) arg;
 
     if (astarte_handler) {
@@ -116,11 +116,12 @@ void wifi_init (void) {
 
 static void astarte_event_handler (void *arg, esp_event_base_t event_base,
                                     int32_t event_id, void *event_data) {
-    ESP_LOGI(TAG, "Astarte EVENT: %d", event_id);
+    //ESP_LOGI(TAG, "Astarte EVENT: %d", event_id);
     switch (event_id) {
-        case ASTARTE_EVENT_CONNECT: {
-            ESP_LOGI(TAG, " ASTARTE CONNECTED");
-        } break;
+    case ASTARTE_EVENT_CONNECT:
+        ESP_LOGI(TAG, " ASTARTE CONNECTED");
+        init_machine_coffee_sensor();
+        break;
     }
 }
 
@@ -154,6 +155,4 @@ void app_main (void) {
 
     wifi_init();
     AstarteHandler *astarte_handler = astarte_init();
-
-    init_machine_coffee_sensor();
 }

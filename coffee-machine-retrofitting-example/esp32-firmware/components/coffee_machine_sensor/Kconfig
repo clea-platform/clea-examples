@@ -1,0 +1,10 @@
+menu "Coffee machine sensor"
+
+config COFFEE_MACHINE_SENSOR
+    int "Coffee machine sensor type"
+    default 0
+    help
+        The sensor used to obtain information from machine. Possible values are: 
+            0: emulated
+            1: delonghi
+endmenu
