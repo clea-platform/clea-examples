@@ -1,0 +1,15 @@
+menu "Astarte handler"
+
+    config ASTARTE_ID
+        string "Astarte fixed device ID"
+        default ""
+        help
+            Astarte identifier to be used if 'CONFIG_USE_FIXED_ID' is greater than 0.
+    
+    config USE_FIXED_ID
+        int "Use fixed ID"
+        default 0
+        help
+            Use fixed Astarte ID (contained in 'CONFIG_ASTARTE_ID') instead of hardware generated ID, if value is greater than 0.
+    endmenu
+    
