@@ -1,6 +1,6 @@
 
 /**
- * @file eva-dts-engine.c
+ * @file eva_ts_engine.h
  * @author Luca Di Mauro (luca.dimauro@seco.com)
  * @brief 
  * @version 0.1
@@ -10,6 +10,7 @@
  * 
  */
 
-#include <stdio.h>
+#ifndef EVA_DTS_ENGINE_H
+#define EVA_DTS_ENGINE_H
 
-#include <eva-dts-engine.h>
+#endif //EVA_DTS_ENGINE_H
