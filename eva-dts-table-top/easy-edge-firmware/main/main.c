@@ -1,6 +1,6 @@
 
 /**
- * @file easy-edge-firmware.c
+ * @file main.c
  * @author Luca Di Mauro (luca.dimauro@seco.com)
  * @brief Entry point for Easy Edge project
  * @version 0.1
@@ -19,8 +19,10 @@
 
 #include <stdio.h>
 
-#include <eva-dts-engine.h>
-#include <astarte-handler.h>
+// #include <eva-dts-engine.h>
+// #include <astarte-handler.h>
+
+#include <astarte_handler.h>
 
 #include <driver/gpio.h>
 #include <esp_log.h>
@@ -41,8 +43,6 @@ uint32_t wifi_retry_count   = 0;
 #define WIFI_FAILED_BIT     BIT1
 
 ESP_EVENT_DEFINE_BASE(ASTARTE_HANDLER_EVENTS);
-
-
 
 
 static void event_handler (void* handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
@@ -173,75 +173,54 @@ esp_err_t init_wifi_connection () {
 
 // ##################################################
 
-esp_err_t init_astarte (astarte_handler_t** target) {
-    const char* TAG                         = "init_astarte";
+esp_err_t astarte_initializer (astarte_handler_t **target) {
+    const char *TAG                         = "astarte_initializer";
     esp_err_t result                        = ESP_OK;
-    *target                                 = astarte_handler_create ();
+    EventGroupHandle_t astarte_event_group  = xEventGroupCreate ();
+    *target                                 = astarte_handler_create();
+
     if (!(*target)) {
-        ESP_LOGE (TAG, "Cannot create Astarte handler");
-        *target  = NULL;
+        ESP_LOGE (TAG, "Cannot create astarte_handler_t");
         return ESP_FAIL;
     }
 
-    // Setting astarte_event_group to 0
-    EventGroupHandle_t astarte_event_group  = xEventGroupCreate ();
     xEventGroupClearBits (astarte_event_group, ASTARTE_HANDLER_INITIALIZED_BIT | ASTARTE_HANDLER_FAILED_BIT);
-
-    // Registering handler for ASTARTE events
-    esp_event_handler_instance_t instance_any_id;
-    ESP_ERROR_CHECK (esp_event_handler_instance_register (
-        ASTARTE_HANDLER_EVENTS, ESP_EVENT_ANY_ID, &event_handler, (void*) astarte_event_group, &instance_any_id));
+    ESP_ERROR_CHECK (esp_event_handler_instance_register (ASTARTE_HANDLER_EVENTS, ESP_EVENT_ANY_ID,
+                                                            &event_handler, astarte_event_group, NULL));
 
     while (!(*target)->start(*target)) {
-        ESP_LOGI (TAG, "Retrying astarte connection");
-        vTaskDelay (pdMS_TO_TICKS(500));
-        // TODO Add an upper limit
+        vTaskDelay(pdTICKS_TO_MS (250));
+
     }
 
-    // Waiting for handler creation
-    ESP_LOGD (TAG, "Waiting for handler creation..");
-    EventBits_t bits    = xEventGroupWaitBits (astarte_event_group, ASTARTE_HANDLER_INITIALIZED_BIT | ASTARTE_HANDLER_FAILED_BIT,
+    EventBits_t bits    = xEventGroupWaitBits (astarte_event_group,
+                                                ASTARTE_HANDLER_INITIALIZED_BIT | ASTARTE_HANDLER_FAILED_BIT,
                                                 pdFALSE, pdFALSE, portMAX_DELAY);
-    if (bits & ASTARTE_HANDLER_FAILED_BIT) {
-        ESP_LOGE (TAG, "Cannot initialize astarte handler!");
-        astarte_handler_destroy (*target);
-        *target = NULL;
+    if (bits & ASTARTE_HANDLER_INITIALIZED_BIT) {
+        // Do nothing
+    } else if (bits & ASTARTE_HANDLER_FAILED_BIT) {
+        ESP_LOGE (TAG, "Astarte NOT corectly initialized");
+        result  = ESP_FAIL;
+    } else {
+        ESP_LOGE (TAG, "UNEXPECTED EVENT");
         result  = ESP_FAIL;
     }
-    else {
-        ESP_LOGD (TAG, "Succesfully connected to astarte");
-    }
-    
-    // Cleaning up 
-    vEventGroupDelete (astarte_event_group);
-    ESP_ERROR_CHECK(
-        esp_event_handler_instance_unregister(ASTARTE_HANDLER_EVENTS, ESP_EVENT_ANY_ID, instance_any_id));
 
     return result;
 }
 
 
-// ################################################## //
-// ################################################## //
+void app_main(void) {
+    const char *TAG                     = "app_main";
+    astarte_handler_t *astarte_handler  = NULL;
+    vTaskDelay(1);
 
-
-void app_main (void) {
-    astarte_handler_t* astarte_handler  = NULL;
-    const char* TAG                     = "app_main";
-
-    // Initializing NVS flash
     ESP_ERROR_CHECK (init_nvs());
-    ESP_LOGI (TAG, "Initialized NVS flash");
+    ESP_LOGI (TAG, "NVS initialized");
 
-    // Initializing Wifi connection
     ESP_ERROR_CHECK (init_wifi_connection());
-    ESP_LOGI (TAG, "Initialized wifi connection");
+    ESP_LOGI (TAG, "WiFi initialized");
 
-    // Initializing Astarte handler
-    ESP_ERROR_CHECK (init_astarte(&astarte_handler));
-    ESP_LOGI (TAG, "Initialized astarte connection");
-
-    // TODO Initializing EVA DTS communication
-
-    // TODO Enabling periodic task to retrieve EVA-DTS compliant information
+    ESP_ERROR_CHECK (astarte_initializer(&astarte_handler));
+    ESP_LOGI (TAG, "Astarte initlized");
 }
