@@ -161,7 +161,6 @@ static char *_get_hardware_id_encoded () {
         return NULL;
     }
     astarte_hwid_encode(encoded_hwid, ENCODED_HWID_LENGTH, (const uint8_t *) device_uuid);
-    encoded_hwid    = _get_hardware_id_encoded();
 #else
     ESP_LOGD (TAG, "Using fixed ID");
     encoded_hwid    = malloc (strlen(CONFIG_ASTARTE_ID)+1);
