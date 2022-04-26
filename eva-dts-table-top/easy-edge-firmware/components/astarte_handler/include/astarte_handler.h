@@ -13,19 +13,16 @@
 #ifndef ASTARTE_HANDLER_H
 #define ASTARTE_HANDLER_H
 
+#include <stdbool.h>
 #include <astarte_device.h>
-
-#include <freertos/FreeRTOS.h>
-#include <freertos/event_groups.h>
-
-#include <esp_log.h>
 #include <esp_err.h>
 #include <esp_event.h>
+#include <esp_timer.h>
 
 
 #define MAC_LENGTH 6
-#define ENCODED_HWID_LENGTH 64
 #define MAC_STRING_LENGTH 13
+#define ENCODED_HWID_LENGTH 64
 #define EXAMPLE_UUID "37119eb1-84fc-4e4b-97de-0b18ab1a49f1"
 
 #define NVS_PARTITION "nvs"
@@ -43,10 +40,10 @@ enum {
  * @brief Handle to actually use Astarte connection
  * 
  */
-typedef struct astarte_handler_s {
-    astarte_device_handle_t device_handle;
-    bool (*start)(struct astarte_handler_s* this);
-    bool (*stop)(struct astarte_handler_s* this);
+typedef struct _astarte_handler_s {
+    astarte_device_handle_t astarte_device_handle;
+    bool (*start)(struct _astarte_handler_s *this);
+    bool (*stop)(struct _astarte_handler_s *this);
 } astarte_handler_t;
 
 
@@ -61,10 +58,8 @@ const static astarte_interface_t acc_data_interface = {
 };*/
 
 
-astarte_handler_t* astarte_handler_create ();
+astarte_handler_t *astarte_handler_create ();
 
+void astarte_handler_destroy (astarte_handler_t *);
 
-esp_err_t astarte_handler_destroy (astarte_handler_t* handler);
-
-
-#endif // ASTARTE_HANDLER_H
+#endif //ASTARTE_HANDLER_H
