@@ -1098,6 +1098,14 @@ CONFIG_EVADTS_SENSOR_ESPRESSO="39"
 CONFIG_EVADTS_SENSOR_COFFEE="40"
 CONFIG_EVADTS_SENSOR_AMERICANO="41"
 # end of EVA-DTS Sensor ID Configuration
+
+#
+# UDP remote debugger configuration
+#
+CONFIG_DEVICE_ID="eva dts engine"
+CONFIG_SERVER_IP="192.168.0.107"
+CONFIG_SERVER_PORT=9090
+# end of UDP remote debugger configuration
 # end of Component config
 
 #
