@@ -1,2 +1,18 @@
-menu "EVA DTS engine"
+menu "EVA-DTS Sensor ID Configuration"
+    config EVADTS_MACHINE_ID
+        string "evadts machine_id"
+        default "machine_id"
+
+    config EVADTS_SENSOR_ESPRESSO
+            string "evadts espresso sensor"
+            default "39"
+
+    config EVADTS_SENSOR_COFFEE
+        string "evadts coffee sensor"
+        default "40"
+
+     config EVADTS_SENSOR_AMERICANO
+        string "evadts americano sensor"
+        default "41"
+
 endmenu
