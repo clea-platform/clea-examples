@@ -18,11 +18,11 @@
 #include <freertos/event_groups.h>
 
 #include <stdio.h>
+#include <string.h>
 
-// #include <eva-dts-engine.h>
-// #include <astarte-handler.h>
-
+#include <evadtsEngine.h>
 #include <astarte_handler.h>
+#include <udp_remote_debugger.h>
 
 #include <driver/gpio.h>
 #include <esp_log.h>
@@ -42,6 +42,7 @@ uint32_t wifi_retry_count   = 0;
 #define WIFI_CONNECTED_BIT  BIT0
 #define WIFI_FAILED_BIT     BIT1
 
+// Astarte
 ESP_EVENT_DEFINE_BASE(ASTARTE_HANDLER_EVENTS);
 
 
@@ -210,10 +211,20 @@ esp_err_t astarte_initializer (astarte_handler_t **target) {
     return result;
 }
 
+// ##################################################
+
+esp_err_t debugger_initializer (udp_remote_debugger_t **target) {
+    esp_err_t result    = ESP_OK;
+
+    *target             = setup_debugger ();
+
+    return result;
+}
 
 void app_main(void) {
     const char *TAG                     = "app_main";
     astarte_handler_t *astarte_handler  = NULL;
+    udp_remote_debugger_t *debugger     = NULL;
     vTaskDelay(1);
 
     ESP_ERROR_CHECK (init_nvs());
@@ -222,6 +233,11 @@ void app_main(void) {
     ESP_ERROR_CHECK (init_wifi_connection());
     ESP_LOGI (TAG, "WiFi initialized");
 
+    /* FIXME Restore me!
     ESP_ERROR_CHECK (astarte_initializer(&astarte_handler));
-    ESP_LOGI (TAG, "Astarte initlized");
+    ESP_LOGI (TAG, "Astarte initlized");*/
+
+    ESP_ERROR_CHECK (debugger_initializer(&debugger));
+    ESP_LOGI (TAG, "Debugger initlized");
+
 }
