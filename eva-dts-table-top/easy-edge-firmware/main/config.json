@@ -1,0 +1,131 @@
+{
+    "transmission": {
+      "hour": 23,
+      "minutes": 50,
+      "seconds": 0
+    },
+    "sensors": [
+      {
+        "id": "39",
+        "map": "espresso",
+        "data_type": "TYPE_U32"
+      },
+      {
+        "id": "41",
+        "map": "americano",
+        "data_type": "TYPE_U32"
+      },
+      {
+        "id": "66",
+        "map": "cappuccino",
+        "data_type": "TYPE_U32"
+      },
+      {
+        "id": "92",
+        "map": "macchiato",
+        "data_type": "TYPE_U32"
+      },
+      {
+        "id": "68",
+        "map": "flat_white",
+        "data_type": "TYPE_U32"
+      },
+      {
+        "id": "40",
+        "map": "coffee",
+        "data_type": "TYPE_U32"
+      },
+      {
+        "id": "65",
+        "map": "latte_macchiato",
+        "data_type": "TYPE_U32"
+      },
+      {
+        "id": "52",
+        "map": "hot_milk",
+        "data_type": "TYPE_U32"
+      },
+      {
+        "id": "50",
+        "map": "hot_water",
+        "data_type": "TYPE_U32"
+      },
+      {
+        "id": "48",
+        "map": "hot_chocolate",
+        "data_type": "TYPE_U32"
+      },
+      {
+        "id": "39_cashed",
+        "map": "espresso_cashed",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "41_cashed",
+        "map": "americano_cashed",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "66_cashed",
+        "map": "cappuccino_cashed",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "92_cashed",
+        "map": "macchiato_cashed",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "68_cashed",
+        "map": "flat_white_cashed",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "40_cashed",
+        "map": "coffee_cashed",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "65_cashed",
+        "map": "latte_macchiato_cashed",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "52_cashed",
+        "map": "hot_milk_cashed",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "50_cashed",
+        "map": "hot_water_cashed",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "48_cashed",
+        "map": "hot_chocolate_cashed",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "coffee_beans_left",
+        "map": "coffee_beans_left",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "fresh_milk",
+        "map": "fresh_milk",
+        "data_type": "TYPE_FLOAT"
+      },
+      {
+        "id": "machine_sn",
+        "data_type": "TYPE_ASCII"
+      },
+      {
+        "id": "customer_id",
+        "data_type": "TYPE_ASCII"
+      },
+      {
+        "id": "outlet_id",
+        "data_type": "TYPE_ASCII"
+      }
+    ]
+  }
