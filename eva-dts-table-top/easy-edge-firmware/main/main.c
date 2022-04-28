@@ -45,6 +45,17 @@ uint32_t wifi_retry_count   = 0;
 // Astarte
 ESP_EVENT_DEFINE_BASE(ASTARTE_HANDLER_EVENTS);
 
+// EVA DTS
+typedef struct _eva_dts_timer_arg_s {
+    esp_timer_handle_t timer_handle;
+    EvadtsEngine *engine;
+} eva_dts_timer_arg_t;
+
+extern uint8_t json_config_start[] asm("_binary_config_json_start");
+extern uint8_t json_config_end[]   asm("_binary_config_json_end");
+
+
+
 
 static void event_handler (void* handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     const char* TAG = "event_handler";
@@ -221,23 +232,116 @@ esp_err_t debugger_initializer (udp_remote_debugger_t **target) {
     return result;
 }
 
+// ##################################################
+
+static void eva_dts_timer_callback (void* arg){
+    const char *TAG                 = "eva_dts_timer_callback";
+    int64_t time_since_boot         = esp_timer_get_time();
+    eva_dts_timer_arg_t *timer_arg  = (eva_dts_timer_arg_t*) arg;
+    EvadtsEngine *engine            = timer_arg->engine;
+
+    ESP_LOGI(TAG, "Periodic timer called, time since boot: %lld us", time_since_boot);
+    ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+
+    EvadtsSensorList *sensors_list  = engine->collectData (engine);
+    
+    /* TODO Map sensors_list to astarte payload
+    TelemetrySensor *sensors = NULL;
+    int size = mapEvadtsToTelemetrySensor(evadtsSensorList, &sensors);*/
+
+    // TODO Remove already published data
+
+    /* TODO Send data to Astarte by publishing an event
+    if (size > 0 && evadtsTimerArg->agent != NULL) {
+        evadtsTimerArg->agent->send(evadtsTimerArg->agent, sensors, size);
+    }*/
+
+    // TODO Save last audit reading timestamp in flash memory
+
+    // TODO Cleanup
+    evadtsSensorList_removeInstance (sensors_list);
+}
+
+esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *debugger) {
+    const char *TAG                 = "eva_dts_initializer";
+    esp_err_t result                = ESP_OK;
+    EventGroupHandle_t event_group  = xEventGroupCreate ();
+    EvadtsEngine *engine            = NULL;
+
+    if (*target != NULL) {
+        ESP_LOGE (TAG, "EVA DTS engine already initialized!");
+        result  = ESP_FAIL;
+        goto init_error;
+    }
+    
+    // FIXME Add max trials counter
+    while (engine == NULL) {
+        engine  = evadtsEngine_init((char *) json_config_start, debugger);
+        if (engine == NULL) {
+            ESP_LOGW (TAG, "engine is NULL, retrying...");
+            vTaskDelay (pdMS_TO_TICKS (1000));
+        }
+    }
+
+    // TODO Retrieving and setting last publish time
+
+    // Creating timer
+    eva_dts_timer_arg_t *timer_cb_arg   = (eva_dts_timer_arg_t*) malloc (sizeof(eva_dts_timer_arg_t));
+    memset (timer_cb_arg, '\0', sizeof(eva_dts_timer_arg_t));
+    timer_cb_arg->engine                = engine;
+    const esp_timer_create_args_t timer_args    = {
+        .callback   = eva_dts_timer_callback,
+        .arg        = timer_cb_arg,
+        .name       = "eva_dts_timer_callback"
+    };
+    ESP_ERROR_CHECK(esp_timer_create(&timer_args, &(timer_cb_arg->timer_handle)));
+    ESP_ERROR_CHECK(esp_timer_start_periodic (timer_cb_arg->timer_handle, CONFIG_PUBLISH_DELAY_SECONDS * 1000000L));
+
+    engine->timerArg    = timer_cb_arg;
+    *target             = engine;
+
+    return result;
+
+    // Error handling
+init_error:
+    if (event_group) {
+        vEventGroupDelete (event_group);
+    }
+    // TODO Delete timer
+    // TODO Delete engine
+
+    return result;
+}
+
+
+
+
+/*  ====================
+            Main        
+    ====================  */
+
 void app_main(void) {
     const char *TAG                     = "app_main";
     astarte_handler_t *astarte_handler  = NULL;
     udp_remote_debugger_t *debugger     = NULL;
-    vTaskDelay(1);
+    EvadtsEngine *eva_dts_engine        = NULL;
+    vTaskDelay(100);
 
     ESP_ERROR_CHECK (init_nvs());
     ESP_LOGI (TAG, "NVS initialized");
 
+    ///* FIXME Restore me!
     ESP_ERROR_CHECK (init_wifi_connection());
-    ESP_LOGI (TAG, "WiFi initialized");
+    ESP_LOGI (TAG, "WiFi initialized");//*/
 
-    /* FIXME Restore me!
+    ///* FIXME Restore me!
     ESP_ERROR_CHECK (astarte_initializer(&astarte_handler));
-    ESP_LOGI (TAG, "Astarte initlized");*/
+    ESP_LOGI (TAG, "Astarte initlized");//*/
 
+    ///* FIXME Restore me!
     ESP_ERROR_CHECK (debugger_initializer(&debugger));
-    ESP_LOGI (TAG, "Debugger initlized");
+    ESP_LOGI (TAG, "Debugger initlized");//*/
 
+    ESP_ERROR_CHECK (eva_dts_initializer(&eva_dts_engine, debugger));
+    ESP_LOGI (TAG, "EVA DTS initialized");
 }
