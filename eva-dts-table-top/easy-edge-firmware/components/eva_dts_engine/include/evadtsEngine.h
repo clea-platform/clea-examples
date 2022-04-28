@@ -7,15 +7,17 @@
 #include "sensor/evadtsAudit.h"
 #include "data/evadtsSensorList.h"
 #include "evadtsConfig.h"
+#include <udp_remote_debugger.h>
 #include <esp_err.h>
 
 typedef struct _evadtsEngine {
     EvadtsConfig* data;
     void* timerArg;
+    udp_remote_debugger_t *debugger;
     EvadtsSensorList* (*collectData)(struct _evadtsEngine *this);
 } EvadtsEngine;
 
-EvadtsEngine* evadtsEngine_init(char*);
+EvadtsEngine* evadtsEngine_init(char*, udp_remote_debugger_t *debugger);
 EvaDtsAudit* evadtsEngine_read();
 void evadtsEngine_destroy(EvadtsEngine*);
 

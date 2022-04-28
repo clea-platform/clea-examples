@@ -21,17 +21,21 @@ static const char* TAG = "EvadtsEngine";
 static EvadtsSensorList* collectData();
 void saveInitData(EvaDtsAudit *evaDtsAudit);
 
-EvadtsEngine *evadtsEngine_init(char *config_raw) {
-    ESP_LOGI(TAG, "===== INIT =====");
-    EvadtsEngine *engine = NULL;
-    EvadtsConfig *evadtsConfig = evadtsConfig_read(config_raw);
+EvadtsEngine *evadtsEngine_init(char *config_raw, udp_remote_debugger_t *debugger) {
+    EvadtsEngine *engine            = NULL;
+    EvadtsConfig *evadtsConfig      = evadtsConfig_read(config_raw);
+    EvadtsPayloadRaw *payloadRaw    = NULL;
 
-    if (evadtsConfig == NULL) return NULL;
+    if (evadtsConfig == NULL)
+        return NULL;
 
     engine = malloc(sizeof(EvadtsEngine));
+    memset (engine, '\0', sizeof(EvadtsEngine));
+
 
     if (engine != NULL) {
-        engine->data = evadtsConfig;
+        engine->debugger    = debugger;
+        engine->data        = evadtsConfig;
         engine->collectData = &collectData;
 
         int retry = 0;
@@ -40,11 +44,31 @@ EvadtsEngine *evadtsEngine_init(char *config_raw) {
 
         while (retry < retryMax) {
             ESP_LOGI(TAG, "read init Free memory: %d bytes", esp_get_free_heap_size());
-            EvadtsPayloadRaw *payloadRaw = evadtsRetriever_readDataCollection(false);
+
+#ifdef CONFIG_USE_RECORDED_DATA
+            extern uint8_t report_example_start[] asm("_binary_evoca_kalea_report_txt_start");
+            extern uint8_t report_example_end[] asm("_binary_evoca_kalea_report_txt_end");
+            //ESP_LOGI (TAG, "Loading already loaded data from %ld to %ld..\n%s", (long int) report_example_start, (long int) report_example_end, report_example_start);
+
+            // Copying report data to payloadRaw variable
+            payloadRaw  = malloc (sizeof(EvadtsPayloadRaw));
+            memset (payloadRaw, '\0', sizeof(EvadtsPayloadRaw));
+            payloadRaw->size    = report_example_end - report_example_start;
+            payloadRaw->data    = malloc (payloadRaw->size);
+            memset (payloadRaw->data, '\0', payloadRaw->size);
+            memcpy (payloadRaw->data, report_example_start, payloadRaw->size-1);
+
+            //ESP_LOGI (TAG, "Copied data:\n%s", payloadRaw->data);
+#else
+            vTaskDelay (pdMS_TO_TICKS(50));
+            payloadRaw  = evadtsRetriever_readDataCollection(false);
+#endif
+
             if (payloadRaw != NULL) {
                 EvadtsDataBlockList *evadtsDataBlockList = evadtsParser_parse(payloadRaw);
                 evadtsPayloadRaw_destroy(payloadRaw);
                 ESP_LOGW(TAG, "parse Free memory: %d bytes", esp_get_free_heap_size());
+                vTaskDelay (pdMS_TO_TICKS(50));
                 if (evadtsDataBlockList != NULL) {
                     evaDtsAudit = evadtsHandler_handleSensors(evadtsDataBlockList);
                     ESP_LOGW(TAG, "handle end Free memory: %d bytes", esp_get_free_heap_size());
@@ -86,6 +110,7 @@ EvadtsEngine *evadtsEngine_init(char *config_raw) {
             vTaskDelay(5 * 1000 / portTICK_PERIOD_MS);
         }
     } else {
+        ESP_LOGI (TAG, "Destroying everything!");
         evadtsConfig_destroy(evadtsConfig);
     }
 
