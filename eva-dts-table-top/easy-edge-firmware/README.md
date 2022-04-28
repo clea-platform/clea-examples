@@ -33,6 +33,10 @@ Set the Astarte configuration by editing in `Component config/Astarte SDK` items
 ---
 
 
+# Setup board
+TODO
+
+
 # Build
 
 Build the project and flash it to the board, then run the monitor tool to view the serial output.
