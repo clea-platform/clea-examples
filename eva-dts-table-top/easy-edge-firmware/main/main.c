@@ -274,18 +274,26 @@ esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *deb
         goto init_error;
     }
     
-    // FIXME Add max trials counter
-    while (engine == NULL) {
+    int8_t n_trials = 0;
+    while (engine == NULL && n_trials<CONFIG_EVA_DTS_MAXIMUM_RETRY) {
+        ++n_trials;
         engine  = evadtsEngine_init((char *) json_config_start, debugger);
         if (engine == NULL) {
-            ESP_LOGW (TAG, "engine is NULL, retrying...");
-            vTaskDelay (pdMS_TO_TICKS (1000));
+            if (n_trials<CONFIG_EVA_DTS_MAXIMUM_RETRY) {
+                ESP_LOGW (TAG, "Cannot initialize EVA DTS communication. Retrying (%d)", n_trials);
+                vTaskDelay (pdMS_TO_TICKS (1000));
+            }
+            else {
+                ESP_LOGE (TAG, "Maximum EVA DTS initialization retrials exceeded!");
+            }
         }
     }
+    if (n_trials>=CONFIG_EVA_DTS_MAXIMUM_RETRY)
+        goto init_error;
 
     // TODO Retrieving and setting last publish time
 
-    // Creating timer
+    // Creating periodic timer
     eva_dts_timer_arg_t *timer_cb_arg   = (eva_dts_timer_arg_t*) malloc (sizeof(eva_dts_timer_arg_t));
     memset (timer_cb_arg, '\0', sizeof(eva_dts_timer_arg_t));
     timer_cb_arg->engine                = engine;

@@ -16,6 +16,12 @@ menu "Tabletop Coffee Machine demo"
         int "WiFi maximum retry"
         default 10
         help
-            Maimum number of retrials to connect to wifi AP.
+            Maximum number of retrials to connect to wifi AP.
+
+    config EVA_DTS_MAXIMUM_RETRY
+        int "EVA DTS communication retrials"
+        default 10
+        help
+            Maximum retrials number in case if EVA DTS comunication initialization error
     endmenu
     
