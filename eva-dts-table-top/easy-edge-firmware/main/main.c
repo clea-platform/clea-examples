@@ -23,6 +23,7 @@
 #include <evadtsEngine.h>
 #include <astarte_handler.h>
 #include <udp_remote_debugger.h>
+#include <data/link.h>
 
 #include <driver/gpio.h>
 #include <esp_log.h>
@@ -47,6 +48,7 @@ ESP_EVENT_DEFINE_BASE(ASTARTE_HANDLER_EVENTS);
 
 // EVA DTS
 typedef struct _eva_dts_timer_arg_s {
+    uint32_t free_bytes;
     esp_timer_handle_t timer_handle;
     EvadtsEngine *engine;
 } eva_dts_timer_arg_t;
@@ -234,38 +236,86 @@ esp_err_t debugger_initializer (udp_remote_debugger_t **target) {
 
 // ##################################################
 
+// TODO FIXME Check `evadtsHandler_handleSensors` function in `evadtsHandler.c` file
 static void eva_dts_timer_callback (void* arg){
     const char *TAG                 = "eva_dts_timer_callback";
     int64_t time_since_boot         = esp_timer_get_time();
     eva_dts_timer_arg_t *timer_arg  = (eva_dts_timer_arg_t*) arg;
     EvadtsEngine *engine            = timer_arg->engine;
 
-    ESP_LOGI(TAG, "Periodic timer called, time since boot: %lld us", time_since_boot);
-    ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+    // FIXME Remove DEBUG prints
+    //ESP_LOGI(TAG, "Periodic timer called, time since boot: %lld us", time_since_boot);
+    ESP_LOGI(TAG, "Free memory: %d bytes", esp_get_free_heap_size());
 
-    EvadtsSensorList *sensors_list  = engine->collectData (engine);
-    
-    /* TODO Map sensors_list to astarte payload
-    TelemetrySensor *sensors = NULL;
-    int size = mapEvadtsToTelemetrySensor(evadtsSensorList, &sensors);*/
+#if 1
+    EvaDtsAudit *audit  = engine->get_audit (engine);
+    PASensor *pa_item   = NULL;
+    SASensor *sa_item   = NULL;
 
-    // TODO Remove already published data
+    if (audit) {
+        // FIXME Remove DEBUG prints
+        ESP_LOGI (TAG, "Audit stats for %s (time: %lld):\n\tPA count: %d\n\tSA count: %d",
+                    audit->idSensor->machine_sn, audit->idSensor->machine_time_sec,
+                    paSensorList_getSize(audit->paSensorList), saSensorList_getSize(audit->saSensorList));
 
-    /* TODO Send data to Astarte by publishing an event
-    if (size > 0 && evadtsTimerArg->agent != NULL) {
-        evadtsTimerArg->agent->send(evadtsTimerArg->agent, sensors, size);
-    }*/
+        printf ("PA\n");
+        while ((pa_item=paSensorList_next(audit->paSensorList)) != NULL) {
+            printf ("Id:%s,  pv:%d,  fv:%d,  \n", pa_item->productId, *(pa_item->productsVendedSinceInit),
+                        *(pa_item->numberFreeVendsSinceInit));
+            paSensor_destroy (pa_item);
+        }
+        printf ("SA\n");
+        while ((sa_item=saSensorList_next(audit->saSensorList)) != NULL) {
+            printf ("ingredient #: %s, %d\n", sa_item->ingredientNumber, sa_item->quantityVendedSinceInit);
+            saSensor_destroy (sa_item);
+        }
 
-    // TODO Save last audit reading timestamp in flash memory
+        // TODO Mapping audit to astarte payload
+        /*TelemetrySensor *sensors = NULL;
+        int size = mapEvadtsToTelemetrySensor(evadtsSensorList, &sensors);*/
 
-    // TODO Cleanup
-    evadtsSensorList_removeInstance (sensors_list);
+        // TODO Removing already published data
+
+        // TODO Sending data to Astarte by publishing an event
+        /*if (size > 0 && evadtsTimerArg->agent != NULL) {
+            evadtsTimerArg->agent->send(evadtsTimerArg->agent, sensors, size);
+        }*/
+
+        // TODO Saving last audit reading timestamp in flash memory
+
+
+        // Cleanup
+        evadtsAudit_destroy (audit);
+    }
+    else {
+        ESP_LOGW (TAG, "Cannot obtain audit!");
+    }
+#else
+    EvadtsSensorList *sensors   = engine->collectData (engine);
+    printf("1\n");
+    if (sensors) {
+        printf("2\n");
+        printf("len %d\n", evadtsSensorList_getSize(sensors));
+        EvaDtsSensor *s = NULL;
+        while (evadtsSensorList_next(sensors) != NULL){}
+        printf("4\n");
+        evadtsSensorList_removeInstance (sensors);
+        printf("5\n");
+    }
+    else
+        ESP_LOGW (TAG, "cazzo");
+#endif
+
+    // FIXME Remove DEBUG prints
+    uint32_t free_bytes = esp_get_free_heap_size ();
+    ESP_LOGI (TAG, "\nBefore: %u\nNow   : %u", timer_arg->free_bytes, free_bytes);
+    ESP_LOGI (TAG, "Free mem delta: %d", (int) (free_bytes - timer_arg->free_bytes));
+    timer_arg->free_bytes   = free_bytes;
 }
 
 esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *debugger) {
     const char *TAG                 = "eva_dts_initializer";
     esp_err_t result                = ESP_OK;
-    EventGroupHandle_t event_group  = xEventGroupCreate ();
     EvadtsEngine *engine            = NULL;
 
     if (*target != NULL) {
@@ -288,8 +338,10 @@ esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *deb
             }
         }
     }
-    if (n_trials>=CONFIG_EVA_DTS_MAXIMUM_RETRY)
+    if (n_trials>=CONFIG_EVA_DTS_MAXIMUM_RETRY) {
+        result  = ESP_FAIL;
         goto init_error;
+    }
 
     // TODO Retrieving and setting last publish time
 
@@ -297,6 +349,7 @@ esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *deb
     eva_dts_timer_arg_t *timer_cb_arg   = (eva_dts_timer_arg_t*) malloc (sizeof(eva_dts_timer_arg_t));
     memset (timer_cb_arg, '\0', sizeof(eva_dts_timer_arg_t));
     timer_cb_arg->engine                = engine;
+    timer_cb_arg->free_bytes            = esp_get_free_heap_size ();
     const esp_timer_create_args_t timer_args    = {
         .callback   = eva_dts_timer_callback,
         .arg        = timer_cb_arg,
@@ -308,13 +361,13 @@ esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *deb
     engine->timerArg    = timer_cb_arg;
     *target             = engine;
 
+    // Calling manually the callback to publish current coffe machine data
+    //FIXME eva_dts_timer_callback (timer_cb_arg);
+
     return result;
 
     // Error handling
 init_error:
-    if (event_group) {
-        vEventGroupDelete (event_group);
-    }
     // TODO Delete timer
     // TODO Delete engine
 
@@ -338,15 +391,15 @@ void app_main(void) {
     ESP_ERROR_CHECK (init_nvs());
     ESP_LOGI (TAG, "NVS initialized");
 
-    ///* FIXME Restore me!
+    /* FIXME Restore me!
     ESP_ERROR_CHECK (init_wifi_connection());
     ESP_LOGI (TAG, "WiFi initialized");//*/
 
-    ///* FIXME Restore me!
+    /* FIXME Restore me!
     ESP_ERROR_CHECK (astarte_initializer(&astarte_handler));
     ESP_LOGI (TAG, "Astarte initlized");//*/
 
-    ///* FIXME Restore me!
+    /* FIXME Restore me!
     ESP_ERROR_CHECK (debugger_initializer(&debugger));
     ESP_LOGI (TAG, "Debugger initlized");//*/
 
