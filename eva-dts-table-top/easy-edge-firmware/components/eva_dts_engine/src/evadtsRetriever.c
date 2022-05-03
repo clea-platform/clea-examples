@@ -49,6 +49,22 @@ static bool connectionClose(){
 EvadtsPayloadRaw* evadtsRetriever_readDataCollection(bool resetValue){
     EvadtsPayloadRaw* payloadRaw= NULL;
 
+#ifdef CONFIG_USE_RECORDED_DATA
+            extern uint8_t report_example_start[] asm("_binary_evoca_kalea_report_txt_start");
+            extern uint8_t report_example_end[] asm("_binary_evoca_kalea_report_txt_end");
+            //ESP_LOGI (TAG, "Loading already loaded data from %ld to %ld..\n%s", (long int) report_example_start, (long int) report_example_end, report_example_start);
+
+            // Copying report data to payloadRaw variable
+            payloadRaw  = malloc (sizeof(EvadtsPayloadRaw));
+            memset (payloadRaw, '\0', sizeof(EvadtsPayloadRaw));
+            payloadRaw->size    = report_example_end - report_example_start;
+            payloadRaw->data    = malloc (payloadRaw->size);
+            memset (payloadRaw->data, '\0', payloadRaw->size);
+            memcpy (payloadRaw->data, report_example_start, payloadRaw->size-1);
+
+            //ESP_LOGI (TAG, "Copied data:\n%s", payloadRaw->data);
+#else
+
     if (connectionSetup()) {
         if (linkInit()) {
             uint8_t ddcmpListNumber = resetValue ? AUDIT_COLLECTION_LIST:SECURITY_READ_LIST;
@@ -61,6 +77,8 @@ EvadtsPayloadRaw* evadtsRetriever_readDataCollection(bool resetValue){
     } else {
         ESP_LOGE(TAG, "Unable to complete Connection Setup");
     }
+
+#endif
 
     return payloadRaw;
 }
