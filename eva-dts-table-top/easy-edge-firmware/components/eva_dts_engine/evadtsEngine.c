@@ -18,7 +18,8 @@
 
 static const char* TAG = "EvadtsEngine";
 
-static EvadtsSensorList* collectData();
+static EvadtsSensorList* collectData(EvadtsEngine*);
+static EvaDtsAudit *get_audit (EvadtsEngine*);
 void saveInitData(EvaDtsAudit *evaDtsAudit);
 
 EvadtsEngine *evadtsEngine_init(char *config_raw, udp_remote_debugger_t *debugger) {
@@ -37,32 +38,15 @@ EvadtsEngine *evadtsEngine_init(char *config_raw, udp_remote_debugger_t *debugge
         engine->debugger    = debugger;
         engine->data        = evadtsConfig;
         engine->collectData = &collectData;
+        engine->get_audit   = &get_audit;
 
         int retry = 0;
         int retryMax = 3;
         EvaDtsAudit *evaDtsAudit = NULL;
 
         while (retry < retryMax) {
-            ESP_LOGI(TAG, "read init Free memory: %d bytes", esp_get_free_heap_size());
-
-#ifdef CONFIG_USE_RECORDED_DATA
-            extern uint8_t report_example_start[] asm("_binary_evoca_kalea_report_txt_start");
-            extern uint8_t report_example_end[] asm("_binary_evoca_kalea_report_txt_end");
-            //ESP_LOGI (TAG, "Loading already loaded data from %ld to %ld..\n%s", (long int) report_example_start, (long int) report_example_end, report_example_start);
-
-            // Copying report data to payloadRaw variable
-            payloadRaw  = malloc (sizeof(EvadtsPayloadRaw));
-            memset (payloadRaw, '\0', sizeof(EvadtsPayloadRaw));
-            payloadRaw->size    = report_example_end - report_example_start;
-            payloadRaw->data    = malloc (payloadRaw->size);
-            memset (payloadRaw->data, '\0', payloadRaw->size);
-            memcpy (payloadRaw->data, report_example_start, payloadRaw->size-1);
-
-            //ESP_LOGI (TAG, "Copied data:\n%s", payloadRaw->data);
-#else
-            vTaskDelay (pdMS_TO_TICKS(50));
+            ESP_LOGI (TAG, "Reading data collection..");
             payloadRaw  = evadtsRetriever_readDataCollection(false);
-#endif
 
             if (payloadRaw != NULL) {
                 EvadtsDataBlockList *evadtsDataBlockList = evadtsParser_parse(payloadRaw);
@@ -110,7 +94,6 @@ EvadtsEngine *evadtsEngine_init(char *config_raw, udp_remote_debugger_t *debugge
             vTaskDelay(5 * 1000 / portTICK_PERIOD_MS);
         }
     } else {
-        ESP_LOGI (TAG, "Destroying everything!");
         evadtsConfig_destroy(evadtsConfig);
     }
 
@@ -134,7 +117,7 @@ void saveInitData(EvaDtsAudit *evaDtsAudit) {
     }
 }
 
-EvadtsSensorList *collectData(EvadtsEngine* this) {
+static EvadtsSensorList *collectData(EvadtsEngine* this) {
     int retry = 0;
     int retryMax = 3;
     EvadtsSensorList *sensors = NULL;
@@ -173,5 +156,38 @@ void evadtsEngine_destroy(EvadtsEngine *engine){
         free(engine);
         engine=NULL;
     }
+}
+
+
+
+
+/* ==================== */
+/* ==================== */
+
+
+
+
+static EvaDtsAudit *get_audit (EvadtsEngine* this) {
+    int retry                                   = 0,
+        retry_max                               = 4;
+    EvadtsDataBlockList *evadtsDataBlockList    = NULL;
+    EvaDtsAudit *audit                          = NULL;
+
+    while (retry < retry_max) {
+        EvadtsPayloadRaw *payloadRaw    = evadtsRetriever_readDataCollection(false);
+        if (payloadRaw != NULL) {
+            evadtsDataBlockList = evadtsParser_parse(payloadRaw);
+            evadtsPayloadRaw_destroy(payloadRaw);
+            audit               = evadtsHandler_handleSensors(evadtsDataBlockList);
+            evadtsDataBlockList_removeInstance(evadtsDataBlockList);
+            retry               = retry_max;
+        } else {
+            ESP_LOGW(TAG, "payload_raw empty");
+            retry++;
+            vTaskDelay(pdMS_TO_TICKS(1000));
+        }
+    }
+
+    return audit;
 }
 

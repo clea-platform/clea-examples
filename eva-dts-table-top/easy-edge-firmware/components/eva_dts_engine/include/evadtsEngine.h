@@ -15,6 +15,7 @@ typedef struct _evadtsEngine {
     void* timerArg;
     udp_remote_debugger_t *debugger;
     EvadtsSensorList* (*collectData)(struct _evadtsEngine *this);
+    EvaDtsAudit* (*get_audit) (struct _evadtsEngine*);
 } EvadtsEngine;
 
 EvadtsEngine* evadtsEngine_init(char*, udp_remote_debugger_t *debugger);
