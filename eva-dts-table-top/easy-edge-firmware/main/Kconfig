@@ -18,10 +18,15 @@ menu "Tabletop Coffee Machine demo"
         help
             Maximum number of retrials to connect to wifi AP.
 
+
     config EVA_DTS_MAXIMUM_RETRY
         int "EVA DTS communication retrials"
         default 10
         help
             Maximum retrials number in case if EVA DTS comunication initialization error
+
+    config PUBLISH_DELAY_SECONDS
+        int "Delay between two publish request to Astarte"
+        default 60
     endmenu
     

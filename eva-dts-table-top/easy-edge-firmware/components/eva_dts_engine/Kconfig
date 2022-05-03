@@ -7,10 +7,6 @@ menu "EVA-DTS Sensor ID Configuration"
         bool "Use aleady recoded data saved in flash memory"
         default n
 
-    config PUBLISH_DELAY_SECONDS
-        int "Delay between two publish request to Astarte"
-        default 60
-
     config EVADTS_SENSOR_ESPRESSO
         string "evadts espresso sensor"
         default "39"
