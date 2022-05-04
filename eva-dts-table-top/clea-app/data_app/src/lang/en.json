@@ -1,0 +1,44 @@
+{
+  "loading": "Loading...",
+  "download": "Download",
+  "all": "All",
+
+  "day": "Day",
+  "week": "Week",
+  "month": "Month",
+  "year": "Year",
+
+  "real_time": "Real time",
+  "real_time_counter": "Real time counter",
+  "most_served": "Most served",
+  "revenue": "Revenue",
+  "revenues": "Revenues",
+  "unit": "Unit",
+  "units": "Units",
+  "beverage": "Beverage",
+  "beverages": "Beverages",
+
+  "beverages_short": {
+    "esp": "Esp",
+    "mac": "Mac",
+    "cap": "Cap",
+    "cho": "Cho",
+    "the": "The"
+  },
+  "beverages_full": {
+    "esp": "Espresso",
+    "mac": "Macchiato",
+    "cap": "Cappuccino",
+    "cho": "Chocolate",
+    "the": "The"
+  },
+
+  "tab_title": "Products overview",
+  "tab_header": {
+    "beverage": "Beverage",
+    "total_units": "Total Units",
+    "total_revenues": "Total Revenues",
+    "price": "Price",
+    "last_update": "Last Update"
+  }
+}

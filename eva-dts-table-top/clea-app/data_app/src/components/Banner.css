@@ -1,0 +1,20 @@
+.banner-card {
+  background-color: #11b0ef;
+  border: 0;
+  border-radius: 0.8em;
+}
+.banner-title {
+  color: white;
+  font-size: 1.3em;
+  font-weight: 450;
+}
+.banner-subtitle {
+  color: rgba(255, 255, 255, 0.842);
+  font-size: 0.9em;
+  font-weight: bold;
+}
+.banner-text {
+  color: white;
+  font-size: 2.5em;
+  font-weight: bolder;
+}

@@ -1,0 +1,44 @@
+{
+  "loading": "Caricamento...",
+  "download": "Download",
+  "all": "Tutti",
+
+  "day": "Giorno",
+  "week": "Settimana",
+  "month": "Mese",
+  "year": "Anno",
+
+  "real_time": "Tempo reale",
+  "real_time_counter": "Counter tempo reale",
+  "most_served": "Più richiesta",
+  "revenue": "Ricavo",
+  "revenues": "Ricavi",
+  "unit": "Unità",
+  "units": "Unità",
+  "beverage": "Bevanda",
+  "beverages": "Bevande",
+
+  "beverages_short": {
+    "esp": "Esp",
+    "mac": "Mac",
+    "cap": "Cap",
+    "cho": "Cio",
+    "the": "Tè"
+  },
+  "beverages_full": {
+    "esp": "Espresso",
+    "mac": "Macchiato",
+    "cap": "Cappuccino",
+    "cho": "Cioccolato",
+    "the": "Tè"
+  },
+
+  "tab_title": "Panoramica prodotti",
+  "tab_header": {
+    "beverage": "Bevanda",
+    "total_units": "Unità Totali",
+    "total_revenues": "Ricavi Totali",
+    "price": "Prezzo",
+    "last_update": "Ultimo Aggiornamento"
+  }
+}
