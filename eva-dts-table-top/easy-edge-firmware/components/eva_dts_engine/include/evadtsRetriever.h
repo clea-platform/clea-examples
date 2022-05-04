@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include "data/evadtsPayloadRaw.h"
 
-EvadtsPayloadRaw* evadtsRetriever_readDataCollection(bool);
+EvadtsPayloadRaw* evadtsRetriever_readDataCollection(bool init_connection, bool reset_values);
 
 
 #endif //   EVADTS_RETRIEVER_H

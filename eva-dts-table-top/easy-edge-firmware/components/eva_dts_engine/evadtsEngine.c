@@ -46,7 +46,7 @@ EvadtsEngine *evadtsEngine_init(char *config_raw, udp_remote_debugger_t *debugge
 
         while (retry < retryMax) {
             ESP_LOGI (TAG, "Reading data collection..");
-            payloadRaw  = evadtsRetriever_readDataCollection(false);
+            payloadRaw  = evadtsRetriever_readDataCollection((retry==0), false);
 
             if (payloadRaw != NULL) {
                 EvadtsDataBlockList *evadtsDataBlockList = evadtsParser_parse(payloadRaw);
@@ -124,7 +124,7 @@ static EvadtsSensorList *collectData(EvadtsEngine* this) {
 
     while (retry < retryMax) {
         ESP_LOGI(TAG, "read init Free memory: %d bytes", esp_get_free_heap_size());
-        EvadtsPayloadRaw *payloadRaw = evadtsRetriever_readDataCollection(false);
+        EvadtsPayloadRaw *payloadRaw = evadtsRetriever_readDataCollection(false, false);
 
         if (payloadRaw != NULL) {
             EvadtsDataBlockList *evadtsDataBlockList = evadtsParser_parse(payloadRaw);
@@ -174,7 +174,7 @@ static EvaDtsAudit *get_audit (EvadtsEngine* this) {
     EvaDtsAudit *audit                          = NULL;
 
     while (retry < retry_max) {
-        EvadtsPayloadRaw *payloadRaw    = evadtsRetriever_readDataCollection(false);
+        EvadtsPayloadRaw *payloadRaw    = evadtsRetriever_readDataCollection(false, false);
         if (payloadRaw != NULL) {
             evadtsDataBlockList = evadtsParser_parse(payloadRaw);
             evadtsPayloadRaw_destroy(payloadRaw);

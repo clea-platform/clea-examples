@@ -46,8 +46,9 @@ static bool connectionClose(){
     return evadtsSerial_close();
 }
 
-EvadtsPayloadRaw* evadtsRetriever_readDataCollection(bool resetValue){
+EvadtsPayloadRaw* evadtsRetriever_readDataCollection(bool init_connection, bool resetValue){
     EvadtsPayloadRaw* payloadRaw= NULL;
+    bool connection_success     = true;
 
 #ifdef CONFIG_USE_RECORDED_DATA
             extern uint8_t report_example_start[] asm("_binary_evoca_kalea_report_txt_start");
@@ -65,7 +66,13 @@ EvadtsPayloadRaw* evadtsRetriever_readDataCollection(bool resetValue){
             //ESP_LOGI (TAG, "Copied data:\n%s", payloadRaw->data);
 #else
 
-    if (connectionSetup()) {
+    if (init_connection) {
+        ESP_LOGI (TAG, "Setting up connection..");
+        connection_success  = connectionSetup();
+        ESP_LOGI (TAG, "Connection done..? %d", connection_success);
+    }
+
+    if (connection_success) {
         if (linkInit()) {
             uint8_t ddcmpListNumber = resetValue ? AUDIT_COLLECTION_LIST:SECURITY_READ_LIST;
             payloadRaw = dataAuditCollection(ddcmpListNumber);
@@ -73,7 +80,8 @@ EvadtsPayloadRaw* evadtsRetriever_readDataCollection(bool resetValue){
             ESP_LOGE(TAG, "Unable to establish link Init");
         }
 
-        connectionClose();
+        // Never close connection
+        //bool closed = connectionClose();
     } else {
         ESP_LOGE(TAG, "Unable to complete Connection Setup");
     }
