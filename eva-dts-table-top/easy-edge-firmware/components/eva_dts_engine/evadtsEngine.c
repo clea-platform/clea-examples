@@ -46,7 +46,7 @@ EvadtsEngine *evadtsEngine_init(char *config_raw, udp_remote_debugger_t *debugge
         EvaDtsAudit *evaDtsAudit = NULL;
 
         while (retry < retryMax) {
-            ESP_LOGI (TAG, "Reading data collection..");
+            ESP_LOGD (TAG, "Reading data collection..");
             payloadRaw  = evadtsRetriever_readDataCollection((retry==0), false);
 
             if (payloadRaw != NULL) {

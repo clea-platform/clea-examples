@@ -239,25 +239,21 @@ esp_err_t debugger_initializer (udp_remote_debugger_t **target) {
 // TODO FIXME Check `evadtsHandler_handleSensors` function in `evadtsHandler.c` file
 static void eva_dts_timer_callback (void* arg){
     const char *TAG                 = "eva_dts_timer_callback";
-    int64_t time_since_boot         = esp_timer_get_time();
     eva_dts_timer_arg_t *timer_arg  = (eva_dts_timer_arg_t*) arg;
     EvadtsEngine *engine            = timer_arg->engine;
 
     // FIXME Remove DEBUG prints
-    //ESP_LOGI(TAG, "Periodic timer called, time since boot: %lld us", time_since_boot);
-    ESP_LOGI(TAG, "Free memory: %d bytes", esp_get_free_heap_size());
+    ESP_LOGV(TAG, "Free memory: %d bytes", esp_get_free_heap_size());
 
-#if 1
     EvaDtsAudit *audit  = engine->get_audit (engine);
     PASensor *pa_item   = NULL;
     SASensor *sa_item   = NULL;
 
     if (audit) {
         // FIXME Remove DEBUG prints
-        ESP_LOGI (TAG, "Audit stats for %s (time: %lld):\n\tPA count: %d\n\tSA count: %d",
+        ESP_LOGV (TAG, "Audit stats for %s (time: %lld):\n\tPA count: %d\n\tSA count: %d",
                     audit->idSensor->machine_sn, audit->idSensor->machine_time_sec,
                     paSensorList_getSize(audit->paSensorList), saSensorList_getSize(audit->saSensorList));
-
         printf ("PA\n");
         while ((pa_item=paSensorList_next(audit->paSensorList)) != NULL) {
             printf ("Id:%s,  pv:%d,  fv:%d,  \n", pa_item->productId, *(pa_item->productsVendedSinceInit),
@@ -269,6 +265,7 @@ static void eva_dts_timer_callback (void* arg){
             printf ("ingredient #: %s, %d\n", sa_item->ingredientNumber, sa_item->quantityVendedSinceInit);
             saSensor_destroy (sa_item);
         }
+
 
         // TODO Mapping audit to astarte payload
         /*TelemetrySensor *sensors = NULL;
@@ -290,26 +287,11 @@ static void eva_dts_timer_callback (void* arg){
     else {
         ESP_LOGW (TAG, "Cannot obtain audit!");
     }
-#else
-    EvadtsSensorList *sensors   = engine->collectData (engine);
-    printf("1\n");
-    if (sensors) {
-        printf("2\n");
-        printf("len %d\n", evadtsSensorList_getSize(sensors));
-        EvaDtsSensor *s = NULL;
-        while (evadtsSensorList_next(sensors) != NULL){}
-        printf("4\n");
-        evadtsSensorList_removeInstance (sensors);
-        printf("5\n");
-    }
-    else
-        ESP_LOGW (TAG, "cazzo");
-#endif
 
     // FIXME Remove DEBUG prints
     uint32_t free_bytes = esp_get_free_heap_size ();
-    ESP_LOGI (TAG, "\nBefore: %u\nNow   : %u", timer_arg->free_bytes, free_bytes);
-    ESP_LOGI (TAG, "Free mem delta: %d", (int) (free_bytes - timer_arg->free_bytes));
+    ESP_LOGV (TAG, "\n\tBefore: %u\n\tNow   : %u", timer_arg->free_bytes, free_bytes);
+    ESP_LOGV (TAG, "Free mem delta: %d\n\n\n", (int) (free_bytes - timer_arg->free_bytes));
     timer_arg->free_bytes   = free_bytes;
 }
 
@@ -362,7 +344,7 @@ esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *deb
     *target             = engine;
 
     // Calling manually the callback to publish current coffe machine data
-    //FIXME eva_dts_timer_callback (timer_cb_arg);
+    eva_dts_timer_callback (timer_cb_arg);
 
     return result;
 
@@ -388,6 +370,8 @@ void app_main(void) {
     EvadtsEngine *eva_dts_engine        = NULL;
     vTaskDelay(100);
 
+    printf ("\n\n\n\n");
+
     ESP_ERROR_CHECK (init_nvs());
     ESP_LOGI (TAG, "NVS initialized");
 
@@ -405,4 +389,6 @@ void app_main(void) {
 
     ESP_ERROR_CHECK (eva_dts_initializer(&eva_dts_engine, debugger));
     ESP_LOGI (TAG, "EVA DTS initialized");
+    
+    printf ("\n\n\n\n");
 }
