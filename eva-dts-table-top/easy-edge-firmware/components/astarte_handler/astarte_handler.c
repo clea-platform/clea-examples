@@ -24,10 +24,12 @@
 
 // Static private functions
 static char *_get_hardware_id_encoded();
-static esp_err_t _add_interface (astarte_device_handle_t device, astarte_interface_t* interface_descriptor);
+static esp_err_t _add_interface (astarte_device_handle_t device, const astarte_interface_t* interface_descriptor);
 
 static bool _start_handler (astarte_handler_t* this);
 static bool _stop_handler (astarte_handler_t* this);
+static esp_err_t _publish_units (struct _astarte_handler_s *this  /*TODO Payload data*/);
+static esp_err_t _publish_revenues (struct _astarte_handler_s *this  /*TODO Payload data*/);
 
 static void _astarte_data_cb (astarte_device_data_event_t* event);
 static void _astarte_connection_cb ();
@@ -70,7 +72,8 @@ astarte_handler_t *astarte_handler_create() {
         goto astarte_init_error;
     }
 
-    // TODO Add interfaces
+    // Add BeverageData
+    _add_interface (device, &beverage_data_interface);
 
     astarte_handler_t *astarte_handler = malloc(sizeof(astarte_handler_t));
 
@@ -82,6 +85,8 @@ astarte_handler_t *astarte_handler_create() {
     astarte_handler->astarte_device_handle  = device;
     astarte_handler->start                  = &_start_handler;
     astarte_handler->stop                   = &_stop_handler;
+    astarte_handler->publish_revenues       = &_publish_revenues;
+    astarte_handler->publish_units          = &_publish_units;
 
     return astarte_handler;
 
@@ -130,6 +135,41 @@ static bool _stop_handler (astarte_handler_t *this) {
     return true;
 }
 
+static esp_err_t _publish_units (struct _astarte_handler_s *this /*TODO Payload data*/) {
+    esp_err_t success    = ESP_FAIL;
+    
+    // TODO Implement me!
+    // Mapping -> devenv0.coffee.retrofitting.BeverageData/units
+
+    // FIXME Remove me!! only for tests
+    int doc_len = 0;
+    struct astarte_bson_serializer_t bs;
+    memset (&bs, '\0', sizeof(struct astarte_bson_serializer_t));
+    astarte_bson_serializer_init(&bs);
+
+    astarte_bson_serializer_append_double(&bs, "x", 10);
+    astarte_bson_serializer_append_double(&bs, "y", 20);
+    astarte_bson_serializer_append_double(&bs, "z", 30);
+
+    astarte_bson_serializer_append_end_of_document(&bs);
+
+    const void *doc = astarte_bson_serializer_get_document(&bs, &doc_len);
+    astarte_device_stream_aggregate (this->astarte_device_handle, beverage_data_interface.name, "/", doc, 0);
+    astarte_bson_serializer_destroy(&bs);
+    // FIXME End of remove
+    
+    return success;
+}
+
+static esp_err_t _publish_revenues (struct _astarte_handler_s *this  /*TODO Payload data*/) {
+    bool success    = ESP_FAIL;
+
+    // TODO Implement me!
+    // Mapping -> devenv0.coffee.retrofitting.BeverageData/revenues
+
+    return success;
+}
+
 static char *_get_hardware_id_encoded () {
     const char *TAG = "_get_hardware_id_encoded";
 
@@ -167,7 +207,7 @@ static char *_get_hardware_id_encoded () {
     return encoded_hwid;
 }
 
-static esp_err_t _add_interface (astarte_device_handle_t device, astarte_interface_t* interface_descriptor) {
+static esp_err_t _add_interface (astarte_device_handle_t device, const astarte_interface_t* interface_descriptor) {
     const char* TAG     = "_add_interface";
     astarte_err_t res   = astarte_device_add_interface (device, interface_descriptor);
 
@@ -181,7 +221,6 @@ static esp_err_t _add_interface (astarte_device_handle_t device, astarte_interfa
 }
 
 static void _astarte_data_cb (astarte_device_data_event_t *event) {
-
     /*ESP_LOGI(TAG, "Got Astarte data event, interface_name: %s, path: %s, bson_type: %d",
         event->interface_name, event->path, event->bson_value_type);*/
 }

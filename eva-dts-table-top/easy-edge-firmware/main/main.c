@@ -51,6 +51,7 @@ typedef struct _eva_dts_timer_arg_s {
     uint32_t free_bytes;
     esp_timer_handle_t timer_handle;
     EvadtsEngine *engine;
+    astarte_handler_t *astarte_handler;
 } eva_dts_timer_arg_t;
 
 extern uint8_t json_config_start[] asm("_binary_config_json_start");
@@ -268,17 +269,14 @@ static void eva_dts_timer_callback (void* arg){
 
 
         // TODO Mapping audit to astarte payload
-        /*TelemetrySensor *sensors = NULL;
-        int size = mapEvadtsToTelemetrySensor(evadtsSensorList, &sensors);*/
 
-        // TODO Removing already published data
-
-        // TODO Sending data to Astarte by publishing an event
+        // TODO Sending data to Astarte
+        ESP_LOGI (TAG, "Published? %d", timer_arg->astarte_handler->publish_units (timer_arg->astarte_handler));
         /*if (size > 0 && evadtsTimerArg->agent != NULL) {
             evadtsTimerArg->agent->send(evadtsTimerArg->agent, sensors, size);
         }*/
 
-        // TODO Saving last audit reading timestamp in flash memory
+        // TODO Saving last audit reading counters in flash memory
 
 
         // Cleanup
@@ -295,7 +293,7 @@ static void eva_dts_timer_callback (void* arg){
     timer_arg->free_bytes   = free_bytes;
 }
 
-esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *debugger) {
+esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *debugger, astarte_handler_t *astarte_handler) {
     const char *TAG                 = "eva_dts_initializer";
     esp_err_t result                = ESP_OK;
     EvadtsEngine *engine            = NULL;
@@ -331,6 +329,7 @@ esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *deb
     eva_dts_timer_arg_t *timer_cb_arg   = (eva_dts_timer_arg_t*) malloc (sizeof(eva_dts_timer_arg_t));
     memset (timer_cb_arg, '\0', sizeof(eva_dts_timer_arg_t));
     timer_cb_arg->engine                = engine;
+    timer_cb_arg->astarte_handler       = astarte_handler;
     timer_cb_arg->free_bytes            = esp_get_free_heap_size ();
     const esp_timer_create_args_t timer_args    = {
         .callback   = eva_dts_timer_callback,
@@ -375,19 +374,13 @@ void app_main(void) {
     ESP_ERROR_CHECK (init_nvs());
     ESP_LOGI (TAG, "NVS initialized");
 
-    /* FIXME Restore me!
     ESP_ERROR_CHECK (init_wifi_connection());
-    ESP_LOGI (TAG, "WiFi initialized");//*/
+    ESP_LOGI (TAG, "WiFi initialized");
 
-    /* FIXME Restore me!
     ESP_ERROR_CHECK (astarte_initializer(&astarte_handler));
-    ESP_LOGI (TAG, "Astarte initlized");//*/
+    ESP_LOGI (TAG, "Astarte initlized");
 
-    /* FIXME Restore me!
-    ESP_ERROR_CHECK (debugger_initializer(&debugger));
-    ESP_LOGI (TAG, "Debugger initlized");//*/
-
-    ESP_ERROR_CHECK (eva_dts_initializer(&eva_dts_engine, debugger));
+    ESP_ERROR_CHECK (eva_dts_initializer(&eva_dts_engine, debugger, astarte_handler));
     ESP_LOGI (TAG, "EVA DTS initialized");
     
     printf ("\n\n\n\n");
