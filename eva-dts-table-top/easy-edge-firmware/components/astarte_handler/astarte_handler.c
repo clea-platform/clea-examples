@@ -118,8 +118,6 @@ static bool _start_handler (astarte_handler_t *this) {
         ESP_LOGW("start", "astarte device doesn't start, code err: %d", err);
         return false;
     }
-
-    ESP_LOGI("start", "astarte device start");
     return true;
 }
 
@@ -129,8 +127,6 @@ static bool _stop_handler (astarte_handler_t *this) {
         ESP_LOGW("stop", "astarte device doesn't stop, code err: %d", err);
         return false;
     }
-
-    ESP_LOGI("stop", "astarte device stop");
     return true;
 }
 
