@@ -35,6 +35,7 @@ EvadtsEngine *evadtsEngine_init(char *config_raw, udp_remote_debugger_t *debugge
 
 
     if (engine != NULL) {
+        ESP_LOGD (TAG, "Engine created!");
         engine->debugger    = debugger;
         engine->data        = evadtsConfig;
         engine->collectData = &collectData;
@@ -51,12 +52,24 @@ EvadtsEngine *evadtsEngine_init(char *config_raw, udp_remote_debugger_t *debugge
             if (payloadRaw != NULL) {
                 EvadtsDataBlockList *evadtsDataBlockList = evadtsParser_parse(payloadRaw);
                 evadtsPayloadRaw_destroy(payloadRaw);
-                ESP_LOGW(TAG, "parse Free memory: %d bytes", esp_get_free_heap_size());
-                vTaskDelay (pdMS_TO_TICKS(50));
                 if (evadtsDataBlockList != NULL) {
                     evaDtsAudit = evadtsHandler_handleSensors(evadtsDataBlockList);
-                    ESP_LOGW(TAG, "handle end Free memory: %d bytes", esp_get_free_heap_size());
                     if (evaDtsAudit != NULL) {
+                        ESP_LOGV (TAG, "Got an audit!!!");
+                        /*printf ("PA\n");
+                        PASensor *pa_item   = NULL;
+                        SASensor *sa_item   = NULL;
+                        while ((pa_item=paSensorList_next(evaDtsAudit->paSensorList)) != NULL) {
+                            printf ("Id:%s,  pv:%d,  fv:%d,  \n", pa_item->productId, *(pa_item->productsVendedSinceInit),
+                                        *(pa_item->numberFreeVendsSinceInit));
+                            paSensor_destroy (pa_item);
+                        }
+                        printf ("SA\n");
+                        while ((sa_item=saSensorList_next(evaDtsAudit->saSensorList)) != NULL) {
+                            printf ("ingredient #: %s, %d\n", sa_item->ingredientNumber, sa_item->quantityVendedSinceInit);
+                            saSensor_destroy (sa_item);
+                        }*/
+
                         if (evaDtsAudit->idSensor) {
                             if (evadtsConfig->transmissionHour >= evaDtsAudit->idSensor->machine_time_sec) {
                                 evadtsConfig->initTransmissionDelayMS =
@@ -94,6 +107,7 @@ EvadtsEngine *evadtsEngine_init(char *config_raw, udp_remote_debugger_t *debugge
             vTaskDelay(5 * 1000 / portTICK_PERIOD_MS);
         }
     } else {
+        ESP_LOGE (TAG, "Cannot create the engine!");
         evadtsConfig_destroy(evadtsConfig);
     }
 

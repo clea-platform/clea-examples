@@ -68,8 +68,9 @@ void parsePa4(PASensor *paSensor, EvadtsDataBlock *evadtsDataBlock) {
     if (evadtsDataBlock->size > 1 && evadtsDataBlock->elements[1] != NULL) {
         char *numberFreeVendsSinceInit = evadtsDataBlock->elements[1];
         paSensor->numberFreeVendsSinceInit = malloc(sizeof(int));
-        if (paSensor->numberFreeVendsSinceInit != NULL)
+        if (paSensor->numberFreeVendsSinceInit != NULL) {
             *paSensor->numberFreeVendsSinceInit = (int) strtol((char *) numberFreeVendsSinceInit, NULL, 10);
+        }
     } else {
         paSensor->numberFreeVendsSinceInit = NULL;
     }

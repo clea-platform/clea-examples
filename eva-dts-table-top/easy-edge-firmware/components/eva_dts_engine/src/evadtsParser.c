@@ -28,7 +28,6 @@ EvadtsDataBlockList *evadtsParser_parse(EvadtsPayloadRaw *payloadRaw) {
             if (data != NULL) {
                 memcpy(data, &(payloadRaw->data[offset]), tokenLen);
                 data[tokenLen] = '\0';
-                ESP_LOGW("ParserLine", "%s", data);
                 link_addNodeToEnd(lineNode, data);
 
                 if (strstr(data, EVA_DTS_END)) {

@@ -34,11 +34,11 @@ SerialDataMsg *evadtsSerial_read() {
         serialDataMsg->bytes = (uint8_t *) malloc(BUF_SIZE);
         int len = uart_read_bytes(uart_num, (uint8_t *) serialDataMsg->bytes, BUF_SIZE, 10 / portTICK_RATE_MS);
         serialDataMsg->length = len;
-        ESP_LOGI("Serial", "read len %d 0x%x", serialDataMsg->length, serialDataMsg->bytes[0]);
-//        for(int i= 0; i<len; i++){
-//            printf("0x%x ", serialDataMsg->bytes[i]);
-//        }
-//        printf("\n");
+        /*ESP_LOGI("Serial", "read len %d 0x%x", serialDataMsg->length, serialDataMsg->bytes[0]);
+        for(int i= 0; i<len; i++){
+            printf("0x%x ", serialDataMsg->bytes[i]);
+        }
+        printf("\n");*/
     }
 
     return serialDataMsg;
@@ -46,7 +46,7 @@ SerialDataMsg *evadtsSerial_read() {
 
 int evadtsSerial_write(SerialDataMsg dataMsg){
     int ret= uart_write_bytes(uart_num, (const char *) dataMsg.bytes, dataMsg.length);
-    ESP_LOGI("Serial", "write len %d 0x%x",dataMsg.length, dataMsg.bytes[0]);
+    //ESP_LOGI("Serial", "write len %d 0x%x",dataMsg.length, dataMsg.bytes[0]);
     return ret;
 }
 
