@@ -136,8 +136,8 @@ static void addPaSensors(EvadtsConfig* evadtsConfig, EvaDtsAudit* evaDtsAudit, E
 
                 if (sensor != NULL) {
                     evadtsSensorList_addNode(evadtsSensorList, sensor);
-                    //ESP_LOGW("PA sensors", "config id-%s  map-%s product id-%s %d", sensor->id, sensor->map,
-                             paSensor->productId, (int) sensor->value.fValue);
+                    /*ESP_LOGW("PA sensors", "config id-%s  map-%s product id-%s %d", sensor->id, sensor->map,
+                             paSensor->productId, (int) sensor->value.fValue);*/
                 }
             }
 
@@ -163,8 +163,8 @@ static void addSaSensors(EvadtsConfig* evadtsConfig, EvaDtsAudit* evaDtsAudit, E
 
                     sensor->value.fValue = (float) quantityVendedSinceInit;
                     evadtsSensorList_addNode(evadtsSensorList, sensor);
-                    //ESP_LOGW("SA sensors", "config id-%s  map-%s product id-%s %d", sensor->id, sensor->map,
-                             saSensor->ingredientNumber, (int) sensor->value.fValue);
+                    /*ESP_LOGW("SA sensors", "config id-%s  map-%s product id-%s %d", sensor->id, sensor->map,
+                             saSensor->ingredientNumber, (int) sensor->value.fValue);*/
                 }
             }
 
