@@ -1,0 +1,26 @@
+{
+  "interface_name": "devenv0.coffee.retrofitting.BeverageData",
+  "version_major": 0,
+  "version_minor": 2,
+  "type": "datastream",
+  "ownership": "device",
+  "description": "Units and total revenues for a generic beverage.",
+  "mappings": [
+    {
+      "endpoint": "/%{bev_id}/revenues",
+      "type": "double",
+      "database_retention_policy": "use_ttl",
+      "database_retention_ttl": 31557600,
+      "explicit_timestamp": true,
+      "description": "Total revenue based on price."
+    },
+    {
+      "endpoint": "/%{bev_id}/units",
+      "type": "integer",
+      "database_retention_policy": "use_ttl",
+      "database_retention_ttl": 31557600,
+      "explicit_timestamp": true,
+      "description": "Number of units sold."
+    }
+  ]
+}
