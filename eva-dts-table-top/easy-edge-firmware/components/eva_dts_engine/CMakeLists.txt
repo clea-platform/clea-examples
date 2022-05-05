@@ -33,5 +33,5 @@ idf_component_register (
     SRCS "${eva_dts_engine_micro_srcs}"
     INCLUDE_DIRS "include"
     REQUIRES json nvs_flash udp_remote_debugger
-    EMBED_TXTFILES data/evoca_kalea_report.txt
+    EMBED_TXTFILES data/evoca_kalea_report_1.txt
 )

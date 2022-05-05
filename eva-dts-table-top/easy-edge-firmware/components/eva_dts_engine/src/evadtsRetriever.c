@@ -51,8 +51,8 @@ EvadtsPayloadRaw* evadtsRetriever_readDataCollection(bool init_connection, bool 
     bool connection_success     = true;
 
 #ifdef CONFIG_USE_RECORDED_DATA
-            extern uint8_t report_example_start[] asm("_binary_evoca_kalea_report_txt_start");
-            extern uint8_t report_example_end[] asm("_binary_evoca_kalea_report_txt_end");
+            extern uint8_t report_example_start[] asm("_binary_evoca_kalea_report_1_txt_start");
+            extern uint8_t report_example_end[] asm("_binary_evoca_kalea_report_1_txt_end");
             //ESP_LOGI (TAG, "Loading already loaded data from %ld to %ld..\n%s", (long int) report_example_start, (long int) report_example_end, report_example_start);
 
             // Copying report data to payloadRaw variable
