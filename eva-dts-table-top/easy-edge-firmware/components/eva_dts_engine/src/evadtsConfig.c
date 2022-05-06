@@ -72,6 +72,7 @@ EvadtsConfig *evadtsConfig_read(char *config_raw) {
     if (config != NULL) {
         parse_transmission(json_transmission, config);
         config->sensors = malloc(size * sizeof(EvaDtsSensor));
+        memset (config->sensors, '\0', (size * sizeof(EvaDtsSensor)));
 
         if (config->sensors != NULL) {
             config->sensorsSize = size;
