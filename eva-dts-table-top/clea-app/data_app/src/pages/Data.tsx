@@ -24,13 +24,15 @@ type DataProps = {
 const Data: React.FC<DataProps> = ({ deviceId, astarteClient }: DataProps) => {
   const intl = useIntl();
 
-  const beverages = ["mac", "esp", "cap", "cho", "the"];
+  const beverages = ["espresso", "2x_espresso", "kaffee_creme", "2x_kaffee_creme", /*"americano_large",*/ "cappuccino", "latte_macchiato"];
   const beverageNames = new Map([
-    ["mac", intl.formatMessage({ id: "beverages_full.mac" })],
-    ["esp", intl.formatMessage({ id: "beverages_full.esp" })],
-    ["cap", intl.formatMessage({ id: "beverages_full.cap" })],
-    ["cho", intl.formatMessage({ id: "beverages_full.cho" })],
-    ["the", intl.formatMessage({ id: "beverages_full.the" })],
+      ["2x_espresso", intl.formatMessage({ id: "beverages_full.2x_espresso" })],
+      ["espresso", intl.formatMessage({ id: "beverages_full.espresso" })],
+      ["kaffee_creme", intl.formatMessage({ id: "beverages_full.kaffee_creme" })],
+      ["2x_kaffee_creme", intl.formatMessage({ id: "beverages_full.2x_kaffee_creme" })],
+      ["americano_large", intl.formatMessage({ id: "beverages_full.americano_large" })],
+      ["cappuccino", intl.formatMessage({ id: "beverages_full.cappuccino" })],
+      ["latte_macchiato", intl.formatMessage({ id: "beverages_full.latte_macchiato" })],
   ]);
   const getBeverageFullName = (bev: string): string | undefined => {
     return beverageNames.get(bev);
@@ -63,8 +65,9 @@ const Data: React.FC<DataProps> = ({ deviceId, astarteClient }: DataProps) => {
           astarteClient.getUnitsData({ deviceId, beverageId: name }),
           astarteClient.getRevenuesData({ deviceId, beverageId: name }),
         ]);
-        // console.log(units);
-        // console.log(revenues);
+        console.log ("Got beverages data")
+        console.log(units);
+        console.log(revenues);
 
         fetchedData.push({ beverage_name: name, color: pickColor(idx), units, revenues });
         globals.push({

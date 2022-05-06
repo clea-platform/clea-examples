@@ -68,11 +68,13 @@ const Filter: React.FC<FilterProps> = ({ data, setDownloadLink }) => {
 
   const beverages = data.map((bevData) => bevData.beverage_name);
   const beverageNames = new Map([
-    ["mac", intl.formatMessage({ id: "beverages_short.mac" })],
-    ["esp", intl.formatMessage({ id: "beverages_short.esp" })],
-    ["cap", intl.formatMessage({ id: "beverages_short.cap" })],
-    ["cho", intl.formatMessage({ id: "beverages_short.cho" })],
-    ["the", intl.formatMessage({ id: "beverages_short.the" })],
+      ["2x_espresso", intl.formatMessage({ id: "beverages_full.2x_espresso" })],
+      ["espresso", intl.formatMessage({ id: "beverages_full.espresso" })],
+      ["kaffee_creme", intl.formatMessage({ id: "beverages_full.kaffee_creme" })],
+      ["2x_kaffee_creme", intl.formatMessage({ id: "beverages_full.2x_kaffee_creme" })],
+      ["americano_large", intl.formatMessage({ id: "beverages_full.americano_large" })],
+      ["cappuccino", intl.formatMessage({ id: "beverages_full.cappuccino" })],
+      ["latte_macchiato", intl.formatMessage({ id: "beverages_full.latte_macchiato" })],
   ]);
   const getBeverageShortName = (bev: string): string | undefined => {
     return beverageNames.get(bev);
