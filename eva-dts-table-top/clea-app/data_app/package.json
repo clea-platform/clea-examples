@@ -59,6 +59,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "build-bundle": "webpack",
+    "watch-bundle": "webpack --mode=development --watch",
     "extract": "formatjs extract 'src/**/*.js*' --out-file lang/en.json --id-interpolation-pattern '[sha512:contenthash:base64:6]'",
     "compile": "formatjs compile-folder lang src/lang",
     "format": "prettier --write ."
