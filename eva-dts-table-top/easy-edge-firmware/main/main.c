@@ -255,15 +255,16 @@ esp_err_t concat (char *target, int target_len, char *s1, char *s2) {
 
 
 esp_err_t send_and_update_beverage_value (nvs_handle_t *nvs_handle, astarte_handler_t *astarte_handler,
-                                            EvaDtsSensor *cache_sensor, uint32_t new_counter) {
+                                            EvaDtsSensor *cache_sensor, uint32_t old_value, uint32_t new_value) {
     const char *TAG     = "send_and_update_beverage_value";
     esp_err_t result    = ESP_OK;
 
     char key_entry_name[NVS_KEY_NAME_MAX_SIZE];
     ESP_ERROR_CHECK (concat(key_entry_name, NVS_KEY_NAME_MAX_SIZE, cache_sensor->id, NVS_KEY_NAME_SUFFIX));
 
-    ESP_LOGI (TAG, "Updating  %s  with value  %d.  Key is  %s", cache_sensor->id, new_counter, key_entry_name);
-    esp_err_t   write_err   = nvs_set_u32 (*nvs_handle, key_entry_name, new_counter);
+    ESP_LOGI (TAG, "Updating  %s  with value  %d (old value is %d).  Key is  %s", cache_sensor->id,
+                new_value, old_value, key_entry_name);
+    esp_err_t   write_err   = nvs_set_u32 (*nvs_handle, key_entry_name, new_value);
     if (write_err != ESP_OK) {
         ESP_ERROR_CHECK (write_err);
     }
@@ -272,8 +273,9 @@ esp_err_t send_and_update_beverage_value (nvs_handle_t *nvs_handle, astarte_hand
         ESP_ERROR_CHECK (commit_err);
     }
 
-    result  = astarte_handler->publish_data (astarte_handler, cache_sensor->map, new_counter,
-                                                new_counter*cache_sensor->price);
+    uint32_t delta  = new_value-old_value;
+    result  = astarte_handler->publish_data (astarte_handler, cache_sensor->map, delta,
+                                                delta*cache_sensor->price);
     if (result != ESP_OK) {
         ESP_LOGE (TAG, "Cannot publish data for sensor with map %s", cache_sensor->map);
     }
@@ -348,7 +350,8 @@ esp_err_t handle_pa_audit_item (EvadtsEngine *engine, PASensor *item, astarte_ha
             /* Comparing value taken from flash with that taken from coffee machine: if entry is already
                 present and its value is different, or it is just created, updating and sending it to astarte */
             if (result==ESP_OK && (just_flashed || (flash_sold_items != *(item->numberFreeVendsSinceInit)))) {
-                result  = send_and_update_beverage_value (&nvs_handle, astarte_handler, cache_sensor, *(item->numberFreeVendsSinceInit));
+                result  = send_and_update_beverage_value (&nvs_handle, astarte_handler, cache_sensor,
+                                                            flash_sold_items, *(item->numberFreeVendsSinceInit));
             }
             else {
                 ESP_LOGD (TAG, "Update for %s not needed", cache_sensor->map);
