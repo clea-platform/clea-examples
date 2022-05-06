@@ -28,8 +28,7 @@ static esp_err_t _add_interface (astarte_device_handle_t device, const astarte_i
 
 static bool _start_handler (astarte_handler_t* this);
 static bool _stop_handler (astarte_handler_t* this);
-static esp_err_t _publish_units (struct _astarte_handler_s *this  /*TODO Payload data*/);
-static esp_err_t _publish_revenues (struct _astarte_handler_s *this  /*TODO Payload data*/);
+static esp_err_t _publish_data (struct _astarte_handler_s *this, char *beverage_id, double revenue, int units);
 
 static void _astarte_data_cb (astarte_device_data_event_t* event);
 static void _astarte_connection_cb ();
@@ -85,8 +84,7 @@ astarte_handler_t *astarte_handler_create() {
     astarte_handler->astarte_device_handle  = device;
     astarte_handler->start                  = &_start_handler;
     astarte_handler->stop                   = &_stop_handler;
-    astarte_handler->publish_revenues       = &_publish_revenues;
-    astarte_handler->publish_units          = &_publish_units;
+    astarte_handler->publish_data           = &_publish_data;
 
     return astarte_handler;
 
@@ -100,8 +98,7 @@ astarte_init_error:
 
 
 
-void astarte_handler_destroy (astarte_handler_t *astarte_handler)
-{
+void astarte_handler_destroy (astarte_handler_t *astarte_handler) {
     if (astarte_handler) {
         astarte_device_destroy(astarte_handler->astarte_device_handle);
         free(astarte_handler);
@@ -135,13 +132,66 @@ static bool _stop_handler (astarte_handler_t *this) {
     return true;
 }
 
-static esp_err_t _publish_units (struct _astarte_handler_s *this /*TODO Payload data*/) {
-    esp_err_t success    = ESP_FAIL;
+static char *_build_path (char *prefix, char *suffix) {
+    size_t path_len = 1 + strlen(prefix) + 1 + strlen(suffix);
+    char *path      = malloc (path_len+1);
+    memset (path, '\0', path_len+1);
+    strcpy (path, "/");
+    strcat (path, prefix);
+    strcat (path, "/");
+    strcat (path, suffix);
+
+    return path;
+}
+
+static esp_err_t _publish_data (struct _astarte_handler_s *this, char *beverage_id, double revenue, int units) {
+
+#if 1
+    const char *TAG     = "_publish_data";
+    esp_err_t success   = ESP_OK;
+    int doc_len         = 0;
+    char *revenues_path = _build_path (beverage_id, "revenues");
+    char *units_path    = _build_path (beverage_id, "units");
+    ESP_LOGD (TAG, "Using paths:\n\t%s\n\t%s", revenues_path, units_path);//FIXME REMOVE ME!
+    struct astarte_bson_serializer_t bs;
     
-    // TODO Implement me!
-    // Mapping -> devenv0.coffee.retrofitting.BeverageData/units
+    memset (&bs, '\0', sizeof(struct astarte_bson_serializer_t));
+    astarte_bson_serializer_init(&bs);
+    astarte_bson_serializer_append_int32 (&bs, "units", units);
+    astarte_bson_serializer_append_double (&bs, "revenues", revenue);
+
+    astarte_bson_serializer_append_end_of_document(&bs);
+
+    const void *doc = astarte_bson_serializer_get_document (&bs, &doc_len);
+    if (!doc) {
+        ESP_LOGE (TAG, "Cannot serialize bson document!\n\tunits: %d\n\trevenues: %f", units, revenue);
+        success = ESP_FAIL;
+    }
+    else {
+        astarte_err_t res   = ASTARTE_OK;
+
+        res = astarte_device_stream_double (this->astarte_device_handle, beverage_data_interface.name,
+                                            revenues_path, revenue, 0);
+        if (res != ASTARTE_OK) {
+            success = ESP_FAIL;
+            ESP_LOGE (TAG, "Cannot publish data to astarte mapping %s", revenues_path);
+            goto error_handling;
+        }
+
+        res = astarte_device_stream_integer (this->astarte_device_handle, beverage_data_interface.name,
+                                                units_path, units, 0);
+        if (res != ASTARTE_OK) {
+            success = ESP_FAIL;
+            ESP_LOGE (TAG, "Cannot publish data to astarte mapping %s", units_path);
+            goto error_handling;
+        }
+    }
+    astarte_bson_serializer_destroy (&bs);
+
+#else
 
     // FIXME Remove me!! only for tests
+    esp_err_t success   = ESP_OK;
     int doc_len = 0;
     struct astarte_bson_serializer_t bs;
     memset (&bs, '\0', sizeof(struct astarte_bson_serializer_t));
@@ -156,16 +206,14 @@ static esp_err_t _publish_units (struct _astarte_handler_s *this /*TODO Payload 
     const void *doc = astarte_bson_serializer_get_document(&bs, &doc_len);
     astarte_device_stream_aggregate (this->astarte_device_handle, beverage_data_interface.name, "/", doc, 0);
     astarte_bson_serializer_destroy(&bs);
-    // FIXME End of remove
+#endif
     
     return success;
-}
 
-static esp_err_t _publish_revenues (struct _astarte_handler_s *this  /*TODO Payload data*/) {
-    bool success    = ESP_FAIL;
-
-    // TODO Implement me!
-    // Mapping -> devenv0.coffee.retrofitting.BeverageData/revenues
+error_handling:
+    astarte_bson_serializer_destroy (&bs);
+    free (revenues_path);
+    free (units_path);
 
     return success;
 }

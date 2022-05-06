@@ -36,7 +36,9 @@
 #define TASK_STACK_DEPTH 4096
 
 // Storage
-#define STORAGE_NAMESPACE   "nvs"
+#define STORAGE_NAMESPACE       "nvs"
+#define NVS_KEY_NAME_MAX_SIZE   16
+#define NVS_KEY_NAME_SUFFIX     "_u"
 
 // Wifi
 uint32_t wifi_retry_count   = 0;
@@ -237,61 +239,169 @@ esp_err_t debugger_initializer (udp_remote_debugger_t **target) {
 
 // ##################################################
 
+esp_err_t concat (char *target, int target_len, char *s1, char *s2) {
+    const char *TAG = "concat";
+    if (strlen(s1)+strlen(s2)+1 > target_len) {
+        ESP_LOGE (TAG, "Too much memory required to store %s%s. Max length is %d", s1, s2, target_len);
+        return ESP_FAIL;
+    }
+
+    memset (target, '\0', target_len);
+    strcpy (target, s1);
+    strcat (target, s2);
+
+    return ESP_OK;
+}
+
+
+esp_err_t send_and_update_beverage_value (nvs_handle_t *nvs_handle, astarte_handler_t *astarte_handler,
+                                            EvaDtsSensor *cache_sensor, uint32_t new_counter) {
+    const char *TAG     = "send_and_update_beverage_value";
+    esp_err_t result    = ESP_OK;
+
+    char key_entry_name[NVS_KEY_NAME_MAX_SIZE];
+    ESP_ERROR_CHECK (concat(key_entry_name, NVS_KEY_NAME_MAX_SIZE, cache_sensor->id, NVS_KEY_NAME_SUFFIX));
+
+    ESP_LOGI (TAG, "Updating  %s  with value  %d.  Key is  %s", cache_sensor->id, new_counter, key_entry_name);
+    esp_err_t   write_err   = nvs_set_u32 (*nvs_handle, key_entry_name, new_counter);
+    if (write_err != ESP_OK) {
+        ESP_ERROR_CHECK (write_err);
+    }
+    esp_err_t commit_err    = nvs_commit(*nvs_handle);
+    if (commit_err != ESP_OK) {
+        ESP_ERROR_CHECK (commit_err);
+    }
+
+    result  = astarte_handler->publish_data (astarte_handler, cache_sensor->map, new_counter,
+                                                new_counter*cache_sensor->price);
+    if (result != ESP_OK) {
+        ESP_LOGE (TAG, "Cannot publish data for sensor with map %s", cache_sensor->map);
+    }
+
+    return result;
+}
+
+
+esp_err_t handle_pa_audit_item (EvadtsEngine *engine, PASensor *item, astarte_handler_t *astarte_handler) {
+    const char *TAG         = "handle_pa_audit_item";
+    esp_err_t result        = ESP_OK;
+    bool just_flashed       = false;
+    int i                   = 0;
+
+    if (item->numberFreeVendsSinceInit == NULL) {
+        ESP_LOGE (TAG, "Audit does not contains free vends for item %s! Very dangerous", item->productId);
+        return ESP_FAIL;
+    }
+
+    for (i=0; i<engine->data->sensorsSize; i++) {
+        EvaDtsSensor *cache_sensor  = &(engine->data->sensors[i]);
+        if (strcmp(cache_sensor->id, item->productId) == 0) {
+            // The sensor descriptor for item->productId has been found: updating local value
+
+            // Opening NVS partition
+            nvs_handle_t nvs_handle = 0;
+            esp_err_t err           = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &nvs_handle);
+            if (err != ESP_OK) {
+                printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+                ESP_ERROR_CHECK (err);
+            }
+
+            // Retrieving sold beverages saved in flash memory
+            char key_entry_name[NVS_KEY_NAME_MAX_SIZE];
+            uint32_t flash_sold_items   = 0.0;
+            ESP_ERROR_CHECK (concat(key_entry_name, NVS_KEY_NAME_MAX_SIZE, cache_sensor->id, NVS_KEY_NAME_SUFFIX));
+            ESP_LOGD (TAG, "Retrieving value with key  '%s'  for sensor  %s", key_entry_name, cache_sensor->id);
+            err = nvs_get_u32(nvs_handle, key_entry_name, &flash_sold_items);
+
+            switch (err) {
+                case ESP_OK:
+                    break;
+
+                case ESP_ERR_NVS_NOT_FOUND:
+                    // This value must be sent to astarte
+                    just_flashed    = true;
+
+                    // Saving value into flash
+                    ESP_LOGW (TAG, "The value for %s is not initialized yet! Zeroing it..", key_entry_name);
+                    flash_sold_items        = 0.0;
+                    esp_err_t   write_err   = nvs_set_u32 (nvs_handle, key_entry_name, flash_sold_items);
+                    if (write_err != ESP_OK) {
+                        printf("Error (%s) writing to NVS handle!\n", esp_err_to_name(write_err));
+                        ESP_ERROR_CHECK (write_err);
+                    }
+                    esp_err_t commit_err    = nvs_commit(nvs_handle);
+                    if (commit_err != ESP_OK) {
+                        printf("Error (%s) writing to NVS handle!\n", esp_err_to_name(commit_err));
+                        ESP_ERROR_CHECK (commit_err);
+                    }
+                    
+                    break;
+
+                default :
+                    result  = err;
+                    break;
+            }
+
+
+            ESP_LOGD (TAG, "(err:%d)  Flash value: %d --> EVA DTS value: %d", result, flash_sold_items, *(item->numberFreeVendsSinceInit));
+
+            /* Comparing value taken from flash with that taken from coffee machine: if entry is already
+                present and its value is different, or it is just created, updating and sending it to astarte */
+            if (result==ESP_OK && (just_flashed || (flash_sold_items != *(item->numberFreeVendsSinceInit)))) {
+                result  = send_and_update_beverage_value (&nvs_handle, astarte_handler, cache_sensor, *(item->numberFreeVendsSinceInit));
+            }
+            else {
+                ESP_LOGD (TAG, "Update for %s not needed", cache_sensor->map);
+            }
+
+            nvs_close (nvs_handle);
+
+            break;
+        }
+    }
+
+    if (result != ESP_OK) {
+        ESP_LOGE (TAG, "Error happened during handling of audit item %s", item->productId);
+    }
+
+    return result;
+}
+
+
 // TODO FIXME Check `evadtsHandler_handleSensors` function in `evadtsHandler.c` file
 static void eva_dts_timer_callback (void* arg){
     const char *TAG                 = "eva_dts_timer_callback";
     eva_dts_timer_arg_t *timer_arg  = (eva_dts_timer_arg_t*) arg;
     EvadtsEngine *engine            = timer_arg->engine;
 
-    // FIXME Remove DEBUG prints
-    ESP_LOGV(TAG, "Free memory: %d bytes", esp_get_free_heap_size());
+    //ESP_LOGV(TAG, "Free memory: %d bytes", esp_get_free_heap_size());
 
     EvaDtsAudit *audit  = engine->get_audit (engine);
     PASensor *pa_item   = NULL;
     SASensor *sa_item   = NULL;
 
     if (audit) {
-        // FIXME Remove DEBUG prints
-        ESP_LOGV (TAG, "Audit stats for %s (time: %lld):\n\tPA count: %d\n\tSA count: %d",
-                    audit->idSensor->machine_sn, audit->idSensor->machine_time_sec,
-                    paSensorList_getSize(audit->paSensorList), saSensorList_getSize(audit->saSensorList));
-        printf ("PA\n");
         while ((pa_item=paSensorList_next(audit->paSensorList)) != NULL) {
-            printf ("Id:%s,  pv:%d,  fv:%d,  \n", pa_item->productId, *(pa_item->productsVendedSinceInit),
-                        *(pa_item->numberFreeVendsSinceInit));
+            handle_pa_audit_item (engine, pa_item, timer_arg->astarte_handler);
             paSensor_destroy (pa_item);
         }
-        printf ("SA\n");
+
         while ((sa_item=saSensorList_next(audit->saSensorList)) != NULL) {
-            printf ("ingredient #: %s, %d\n", sa_item->ingredientNumber, sa_item->quantityVendedSinceInit);
+            // Do nothing
             saSensor_destroy (sa_item);
         }
-
-
-        // TODO Mapping audit to astarte payload
-
-        // TODO Sending data to Astarte
-        ESP_LOGI (TAG, "Published? %d", timer_arg->astarte_handler->publish_units (timer_arg->astarte_handler));
-        /*if (size > 0 && evadtsTimerArg->agent != NULL) {
-            evadtsTimerArg->agent->send(evadtsTimerArg->agent, sensors, size);
-        }*/
-
-        // TODO Saving last audit reading counters in flash memory
-
-
-        // Cleanup
         evadtsAudit_destroy (audit);
     }
     else {
-        ESP_LOGW (TAG, "Cannot obtain audit!");
+        ESP_LOGW (TAG, "Cannot obtain the audit!");
     }
 
-    // FIXME Remove DEBUG prints
-    uint32_t free_bytes = esp_get_free_heap_size ();
+    /*uint32_t free_bytes = esp_get_free_heap_size ();
     ESP_LOGV (TAG, "\n\tBefore: %u\n\tNow   : %u", timer_arg->free_bytes, free_bytes);
     ESP_LOGV (TAG, "Free mem delta: %d\n\n\n", (int) (free_bytes - timer_arg->free_bytes));
-    timer_arg->free_bytes   = free_bytes;
+    timer_arg->free_bytes   = free_bytes;*/
 }
+
 
 esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *debugger, astarte_handler_t *astarte_handler) {
     const char *TAG                 = "eva_dts_initializer";
@@ -323,7 +433,15 @@ esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *deb
         goto init_error;
     }
 
-    // TODO Retrieving and setting last publish time
+    // FIXME Remove me!
+    EvaDtsSensor *sens  = NULL;
+    for (int i=0; i<engine->data->sensorsSize; i++) {
+        sens    = &(engine->data->sensors[i]);
+        if (sens->valueType != VALUE_TYPE_ASCII)
+            ESP_LOGI (TAG, "Sensor %s mapped to %s with value %f", sens->id, sens->map, sens->value.fValue);
+        else
+            ESP_LOGI (TAG, "Sensor %s mapped to %s", sens->id, sens->map);
+    }
 
     // Creating periodic timer
     eva_dts_timer_arg_t *timer_cb_arg   = (eva_dts_timer_arg_t*) malloc (sizeof(eva_dts_timer_arg_t));

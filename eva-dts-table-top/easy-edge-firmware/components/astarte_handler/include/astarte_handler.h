@@ -44,17 +44,15 @@ typedef struct _astarte_handler_s {
     astarte_device_handle_t astarte_device_handle;
     bool (*start)(struct _astarte_handler_s *this);
     bool (*stop)(struct _astarte_handler_s *this);
-    esp_err_t (*publish_units)(struct _astarte_handler_s *this);
-    esp_err_t (*publish_revenues)(struct _astarte_handler_s *this);
+    esp_err_t (*publish_data)(struct _astarte_handler_s *this, char *beverage_id, double revenue, int units);
 } astarte_handler_t;
 
 
 // Defining astarte interfaces
 const static astarte_interface_t beverage_data_interface    = {
-    //.name           = "devenv0.coffee.retrofitting.BeverageData", // FIXME Resore me!
-    .name           = "ai.clea.examples.Accelerometer",             // FIXME Delete me!
-    .major_version  = 0,                                            // FIXME
-    .minor_version  = 0,                                            // FIXME
+    .name           = "devenv0.coffee.retrofitting.BeverageData",
+    .major_version  = 0,
+    .minor_version  = 3,
     .ownership      = OWNERSHIP_DEVICE,
     .type           = TYPE_DATASTREAM
 };
