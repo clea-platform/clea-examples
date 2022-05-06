@@ -23,6 +23,7 @@ typedef struct _evaDtsSensor {
     char map[51];
     ValueType valueType;
     EvaDtsValue value;
+    float price;
 } EvaDtsSensor;
 
 #endif //EVA_DTS_ENGINE_MICRO_EVADTSSENSOR_H

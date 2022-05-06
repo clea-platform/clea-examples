@@ -12,6 +12,7 @@
 #define EVADTS_SENSORS_ID_KEY "id"
 #define EVADTS_SENSORS_MAP_KEY "map"
 #define EVADTS_SENSORS_TYPE_KEY "data_type"
+#define EVADTS_SENSORS_PRICE_KEY "price"
 
 #define EVADTS_TRANSMISSION_KEY "transmission"
 #define EVADTS_TRANSMISSION_H_KEY "hour"
@@ -110,6 +111,7 @@ int parse_sensor(cJSON *json_sensor, EvaDtsSensor *sensor) {
     cJSON *id = cJSON_GetObjectItem(json_sensor, EVADTS_SENSORS_ID_KEY);
     cJSON *map = cJSON_GetObjectItem(json_sensor, EVADTS_SENSORS_MAP_KEY);
     cJSON *type = cJSON_GetObjectItem(json_sensor, EVADTS_SENSORS_TYPE_KEY);
+    cJSON *price = cJSON_GetObjectItem(json_sensor, EVADTS_SENSORS_PRICE_KEY);
 
     if (id != NULL) {
         sprintf(sensor->id, "%s", id->valuestring);
@@ -121,6 +123,13 @@ int parse_sensor(cJSON *json_sensor, EvaDtsSensor *sensor) {
         sprintf(sensor->map, "%s", map->valuestring);
     } else {
         sprintf(sensor->map, "%s", id->valuestring);
+    }
+
+    if (price != NULL) {
+        sensor->price   = price->valuedouble;
+    }
+    else {
+        sensor->price   = 0;
     }
 
     if (type != NULL) {
