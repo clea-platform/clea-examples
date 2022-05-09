@@ -9,43 +9,43 @@
             "id": "39",
             "map": "espresso",
             "data_type": "TYPE_U32",
-            "price": 1
+            "price": 0.80
         },
         {
             "id": "42",
             "map": "2x_kaffee_creme",
             "data_type": "TYPE_U32",
-            "price": 1
+            "price": 1.7
         },
         {
             "id": "53",
             "map": "cappuccino",
             "data_type": "TYPE_U32",
-            "price": 1
+            "price": 0.85
         },
         {
             "id": "65",
             "map": "latte_macchiato",
             "data_type": "TYPE_U32",
-            "price": 1
+            "price": 0.9
         },
         {
             "id": "76",
             "map": "americano_large",
             "data_type": "TYPE_U32",
-            "price": 1
+            "price": 1.1
         },
         {
             "id": "92",
             "map": "2x_espresso",
             "data_type": "TYPE_U32",
-            "price": 1
+            "price": 1.6
         },
         {
             "id": "96",
             "map": "kaffee_creme",
             "data_type": "TYPE_U32",
-            "price": 1
+            "price": 0.85
         },
 
 
