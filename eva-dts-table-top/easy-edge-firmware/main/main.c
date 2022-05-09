@@ -278,8 +278,9 @@ esp_err_t send_and_update_beverage_value (nvs_handle_t *nvs_handle, astarte_hand
         delta   = new_value;
     else
         delta   = new_value - old_value;
-    result  = astarte_handler->publish_data (astarte_handler, cache_sensor->map, delta,
-                                                delta*cache_sensor->price);
+    ESP_LOGI (TAG, "Delta %d, price %f", delta, cache_sensor->price); // FIXME REMOVE ME
+    result  = astarte_handler->publish_data (astarte_handler, cache_sensor->map, delta*cache_sensor->price,
+                                                delta);
     if (result != ESP_OK) {
         ESP_LOGE (TAG, "Cannot publish data for sensor with map %s", cache_sensor->map);
     }
@@ -445,7 +446,7 @@ esp_err_t eva_dts_initializer (EvadtsEngine **target, udp_remote_debugger_t *deb
     for (int i=0; i<engine->data->sensorsSize; i++) {
         sens    = &(engine->data->sensors[i]);
         if (sens->valueType != VALUE_TYPE_ASCII)
-            ESP_LOGI (TAG, "Sensor %s mapped to %s with value %f", sens->id, sens->map, sens->value.fValue);
+            ESP_LOGI (TAG, "Sensor %s mapped to %s with value %f (price %f)", sens->id, sens->map, sens->value.fValue, sens->price);
         else
             ESP_LOGI (TAG, "Sensor %s mapped to %s", sens->id, sens->map);
     }
