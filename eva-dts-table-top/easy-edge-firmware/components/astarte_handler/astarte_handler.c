@@ -146,7 +146,6 @@ static char *_build_path (char *prefix, char *suffix) {
 
 static esp_err_t _publish_data (struct _astarte_handler_s *this, char *beverage_id, double revenue, int units) {
 
-#if 1
     const char *TAG     = "_publish_data";
     esp_err_t success   = ESP_OK;
     int doc_len         = 0;
@@ -187,30 +186,11 @@ static esp_err_t _publish_data (struct _astarte_handler_s *this, char *beverage_
         }
     }
     astarte_bson_serializer_destroy (&bs);
-
-#else
-
-    // FIXME Remove me!! only for tests
-    esp_err_t success   = ESP_OK;
-    int doc_len = 0;
-    struct astarte_bson_serializer_t bs;
-    memset (&bs, '\0', sizeof(struct astarte_bson_serializer_t));
-    astarte_bson_serializer_init(&bs);
-
-    astarte_bson_serializer_append_double(&bs, "x", 10);
-    astarte_bson_serializer_append_double(&bs, "y", 20);
-    astarte_bson_serializer_append_double(&bs, "z", 30);
-
-    astarte_bson_serializer_append_end_of_document(&bs);
-
-    const void *doc = astarte_bson_serializer_get_document(&bs, &doc_len);
-    astarte_device_stream_aggregate (this->astarte_device_handle, beverage_data_interface.name, "/", doc, 0);
-    astarte_bson_serializer_destroy(&bs);
-#endif
     
     return success;
 
 error_handling:
+    ESP_LOGE (TAG, "Handling error!");
     astarte_bson_serializer_destroy (&bs);
     free (revenues_path);
     free (units_path);
