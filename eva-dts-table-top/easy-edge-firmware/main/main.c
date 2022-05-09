@@ -278,7 +278,6 @@ esp_err_t send_and_update_beverage_value (nvs_handle_t *nvs_handle, astarte_hand
         delta   = new_value;
     else
         delta   = new_value - old_value;
-    ESP_LOGW (TAG, "Delta is %d\n", delta);
     result  = astarte_handler->publish_data (astarte_handler, cache_sensor->map, delta,
                                                 delta*cache_sensor->price);
     if (result != ESP_OK) {
