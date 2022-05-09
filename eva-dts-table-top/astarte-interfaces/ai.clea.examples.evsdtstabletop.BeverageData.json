@@ -1,7 +1,8 @@
+
 {
-  "interface_name": "devenv0.coffee.retrofitting.BeverageData",
+  "interface_name": "ai.clea.examples.evsdtstabletop.BeverageData",
   "version_major": 0,
-  "version_minor": 2,
+  "version_minor": 1,
   "type": "datastream",
   "ownership": "device",
   "description": "Units and total revenues for a generic beverage.",

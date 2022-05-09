@@ -50,9 +50,9 @@ typedef struct _astarte_handler_s {
 
 // Defining astarte interfaces
 const static astarte_interface_t beverage_data_interface    = {
-    .name           = "devenv0.coffee.retrofitting.BeverageData",
+    .name           = "ai.clea.examples.evsdtstabletop.BeverageData",
     .major_version  = 0,
-    .minor_version  = 3,
+    .minor_version  = 1,
     .ownership      = OWNERSHIP_DEVICE,
     .type           = TYPE_DATASTREAM
 };

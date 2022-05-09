@@ -37,7 +37,7 @@ class AstarteClient {
 
   async getUnitsData({ deviceId, beverageId, sinceAfter, since, to, limit, downsamplingTo }: BeverageDataParameters): Promise<UnitsData[]> {
     const { appEngineUrl, realm, token } = this.config;
-    const interfaceName = "devenv0.coffee.retrofitting.BeverageData";
+    const interfaceName = "ai.clea.examples.evsdtstabletop.BeverageData";
     const path = `v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}/${beverageId}/units`;
     const requestUrl = new URL(path, appEngineUrl);
     const query: Record<string, string> = {};
@@ -89,7 +89,7 @@ class AstarteClient {
     downsamplingTo,
   }: BeverageDataParameters): Promise<RevenuesData[]> {
     const { appEngineUrl, realm, token } = this.config;
-    const interfaceName = "devenv0.coffee.retrofitting.BeverageData";
+    const interfaceName = "ai.clea.examples.evsdtstabletop.BeverageData";
     const path = `v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}/${beverageId}/revenues`;
     const requestUrl = new URL(path, appEngineUrl);
     const query: Record<string, string> = {};
