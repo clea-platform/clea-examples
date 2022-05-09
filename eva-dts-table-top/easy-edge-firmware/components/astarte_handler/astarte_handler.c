@@ -152,6 +152,7 @@ static esp_err_t _publish_data (struct _astarte_handler_s *this, char *beverage_
     char *revenues_path = _build_path (beverage_id, "revenues");
     char *units_path    = _build_path (beverage_id, "units");
     ESP_LOGD (TAG, "Using paths:\n\t%s\n\t%s", revenues_path, units_path);//FIXME REMOVE ME!
+    ESP_LOGW (TAG, "Values for %s are (u) %d\t(r) %f", beverage_id, units, revenue);//FIXME REMOVE ME!
     struct astarte_bson_serializer_t bs;
     
     memset (&bs, '\0', sizeof(struct astarte_bson_serializer_t));
