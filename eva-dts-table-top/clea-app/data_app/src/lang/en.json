@@ -23,18 +23,18 @@
     "2x_espresso": "2xEsp",
     "kaffee_creme": "Kaffe",
     "2x_kaffee_creme": "2xKaffee",
-    "americano_large": "American",
+    "americano_large": "Americano",
     "cappuccino": "Cap",
-    "latte_macchiato": "Dirty"
+    "latte_macchiato": "Latte"
   },
   "beverages_full": {
     "espresso": "Espresso",
     "2x_espresso": "2 x Espresso",
     "kaffee_creme": "Kaffe Creme",
     "2x_kaffee_creme": "2 x Kaffee Creme",
-    "americano_large": "American Large",
+    "americano_large": "Americano Large",
     "cappuccino": "Cappuccino",
-    "latte_macchiato": "Dirty Milk"
+    "latte_macchiato": "Latte"
   },
 
   "tab_title": "Products overview",
