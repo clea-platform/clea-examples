@@ -181,9 +181,9 @@ def set_device():
 To send data we can use:
 ```python
 def send_data(device, data):
-    device.send_aggregate("devenv0.face.emotion.detection.Transaction", "/transaction", payload=data, timestamp=time.time())
+    device.send_aggregate("ai.clea.examples.face.emotion.detection.Transaction", "/transaction", payload=data, timestamp=time.time())
 ```
-where devenv0.face.emotion.detection.Transaction  is the name of the interface, /transaction  is the path in the interface, the payload is the data to be sent that must follow the rules described in the interface, and the timestamp is clear from the context.
+where ai.clea.examples.face.emotion.detection.Transaction  is the name of the interface, /transaction  is the path in the interface, the payload is the data to be sent that must follow the rules described in the interface, and the timestamp is clear from the context.
 
 So at the beginning of the code we initialise the connection and hold a reference to the device in a singleton pattern:
 ```python
@@ -296,7 +296,7 @@ class AstarteClient {
 
     async getTransactionData({ deviceId, sinceAfter, since, to, limit, downsamplingTo }: GetTransactionValuesParams) : Promise<TransactionData[]> {
         const { appEngineUrl, realm, token } = this.config;
-        const interfaceName = "devenv0.face.emotion.detection.Transaction";
+        const interfaceName = "ai.clea.examples.face.emotion.detection.Transaction";
         const path = `v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}/transaction`;
         const requestUrl = new URL(path, appEngineUrl);
         const query: Record<string, string> = {};

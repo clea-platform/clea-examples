@@ -37,7 +37,7 @@ class AstarteClient {
 
   async getTransactionData({ deviceId, sinceAfter, since, to, limit, downsamplingTo }: GetTransactionValuesParams) : Promise<TransactionData[]> {
     const { appEngineUrl, realm, token } = this.config;
-    const interfaceName = "devenv0.face.emotion.detection.Transaction";
+    const interfaceName = "ai.clea.examples.face.emotion.detection.Transaction";
     const path = `v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}/transaction`;
     const requestUrl = new URL(path, appEngineUrl);
     const query: Record<string, string> = {};
