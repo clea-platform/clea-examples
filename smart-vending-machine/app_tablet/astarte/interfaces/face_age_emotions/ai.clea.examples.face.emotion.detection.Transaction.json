@@ -1,5 +1,4 @@
 {
-  //"interface_name": "devenv0.face.emotion.detection.Transaction",
   "interface_name": "ai.clea.examples.face.emotion.detection.Transaction",
   "version_major": 0,
   "version_minor": 1,
