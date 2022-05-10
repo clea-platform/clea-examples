@@ -1,0 +1,48 @@
+{
+  "loading": "Caricamento...",
+  "download": "Download",
+  "all": "Tutti",
+
+  "day": "Giorno",
+  "week": "Settimana",
+  "month": "Mese",
+  "year": "Anno",
+
+  "real_time": "Tempo reale",
+  "real_time_counter": "Counter tempo reale",
+  "most_served": "Più richiesta",
+  "revenue": "Ricavo",
+  "revenues": "Ricavi",
+  "unit": "Unità",
+  "units": "Unità",
+  "beverage": "Bevanda",
+  "beverages": "Bevande",
+
+  "beverages_short": {
+    "espresso": "Esp",
+    "2x_espresso": "2xEsp",
+    "kaffee_creme": "Kaffe",
+    "2x_kaffee_creme": "2xKaffee",
+    "americano_large": "Americano",
+    "cappuccino": "Cap",
+    "latte_macchiato": "Macc"
+  },
+  "beverages_full": {
+    "espresso": "Espresso",
+    "2x_espresso": "2 x Espresso",
+    "kaffee_creme": "Kaffe Creme",
+    "2x_kaffee_creme": "2 x Kaffee Creme",
+    "americano_large": "Americano Lungo",
+    "cappuccino": "Cappuccino",
+    "latte_macchiato": "Latte Macchiato"
+  },
+
+  "tab_title": "Panoramica prodotti",
+  "tab_header": {
+    "beverage": "Bevanda",
+    "total_units": "Unità Totali",
+    "total_revenues": "Ricavi Totali",
+    "price": "Prezzo",
+    "last_update": "Ultimo Aggiornamento"
+  }
+}

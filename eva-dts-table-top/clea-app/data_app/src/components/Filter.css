@@ -1,0 +1,52 @@
+.filter-toolbar > .btn-group {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+.filter-toolbar > .btn-group label {
+  color: gray;
+  border: 0;
+  border-radius: 0.8em;
+  margin-right: 5px;
+}
+.filter-toolbar > .btn-group input[type="radio"]:checked + label {
+  font-weight: 500;
+  border-radius: 0.8em;
+  color: blue;
+  background-color: white;
+  box-shadow: 0.2em 0.2em 0.2em rgba(128, 128, 128, 0.4);
+}
+.filter-toolbar > .btn-group .react-daterange-picker__wrapper {
+  border-radius: 0.8em;
+}
+
+.filter-toolbar > .btn-group input[type="checkbox"]:checked + label {
+  font-weight: 500;
+  border-radius: 0.8em;
+  color: blue;
+  background-color: white;
+  box-shadow: 0.2em 0.2em 0.2em rgba(128, 128, 128, 0.4);
+}
+
+.filter-toolbar > .btn-group > button {
+  border: 0;
+  font-weight: 500;
+  border-radius: 0.8em;
+  color: gray;
+  background-color: white;
+  box-shadow: 0.2em 0.2em 0.2em rgba(128, 128, 128, 0.4);
+}
+.filter-toolbar > .btn-group > button:hover {
+  border: 0;
+  font-weight: 500;
+  border-radius: 0.8em;
+  color: blue;
+  background-color: white;
+  box-shadow: 0.2em 0.2em 0.2em rgba(128, 128, 128, 0.4);
+}
+
+.filter-toolbar > .btn-group label:hover {
+  font-weight: 400;
+  border-radius: 0.8em;
+  color: blue;
+  background-color: white;
+  box-shadow: 0.2em 0.2em 0.2em rgba(128, 128, 128, 0.4);
+}

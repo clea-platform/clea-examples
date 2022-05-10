@@ -1,4 +1,4 @@
-*build
+build
 .vscode
 Makefile
 astarte_persistency.d

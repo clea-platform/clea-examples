@@ -1,0 +1,48 @@
+{
+  "loading": "Loading...",
+  "download": "Download",
+  "all": "All",
+
+  "day": "Day",
+  "week": "Week",
+  "month": "Month",
+  "year": "Year",
+
+  "real_time": "Real time",
+  "real_time_counter": "Real time counter",
+  "most_served": "Most served",
+  "revenue": "Revenue",
+  "revenues": "Revenues",
+  "unit": "Unit",
+  "units": "Units",
+  "beverage": "Beverage",
+  "beverages": "Beverages",
+
+  "beverages_short": {
+    "espresso": "Esp",
+    "2x_espresso": "2xEsp",
+    "kaffee_creme": "Kaffe",
+    "2x_kaffee_creme": "2xKaffee",
+    "americano_large": "Americano",
+    "cappuccino": "Cap",
+    "latte_macchiato": "Latte"
+  },
+  "beverages_full": {
+    "espresso": "Espresso",
+    "2x_espresso": "2 x Espresso",
+    "kaffee_creme": "Kaffe Creme",
+    "2x_kaffee_creme": "2 x Kaffee Creme",
+    "americano_large": "Americano Large",
+    "cappuccino": "Cappuccino",
+    "latte_macchiato": "Latte"
+  },
+
+  "tab_title": "Products overview",
+  "tab_header": {
+    "beverage": "Beverage",
+    "total_units": "Total Units",
+    "total_revenues": "Total Revenues",
+    "price": "Price",
+    "last_update": "Last Update"
+  }
+}

@@ -1,0 +1,32 @@
+menu "Tabletop Coffee Machine demo"
+
+    config WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the example to connect to.
+    
+    config WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the example to use.
+    
+    config WIFI_MAXIMUM_RETRY
+        int "WiFi maximum retry"
+        default 10
+        help
+            Maximum number of retrials to connect to wifi AP.
+
+
+    config EVA_DTS_MAXIMUM_RETRY
+        int "EVA DTS communication retrials"
+        default 10
+        help
+            Maximum retrials number in case if EVA DTS comunication initialization error
+
+    config PUBLISH_DELAY_SECONDS
+        int "Delay between two publish request to Astarte"
+        default 60
+    endmenu
+    

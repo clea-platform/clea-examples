@@ -1,0 +1,14 @@
+menu "UDP remote debugger configuration"
+    config DEVICE_ID
+        string "Device identifier prefixed to debug string"
+        default "eva dts engine"
+
+    config SERVER_IP
+        string "IP of target machine running UDP server"
+        default "192.168.1.1"
+
+    config SERVER_PORT
+        int "Port number of target machine running UDP server"
+        default 9090
+
+endmenu

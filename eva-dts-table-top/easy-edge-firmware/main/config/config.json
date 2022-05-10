@@ -1,0 +1,76 @@
+{
+    "transmission": {
+        "hour": 23,
+        "minutes": 50,
+        "seconds": 0
+    },
+    "sensors": [
+        {
+            "id": "39",
+            "map": "espresso",
+            "data_type": "TYPE_U32",
+            "price": 1.1
+        },
+        {
+            "id": "42",
+            "map": "2x_kaffee_creme",
+            "data_type": "TYPE_U32",
+            "price": 2.6
+        },
+        {
+            "id": "53",
+            "map": "cappuccino",
+            "data_type": "TYPE_U32",
+            "price": 1.2
+        },
+        {
+            "id": "65",
+            "map": "latte_macchiato",
+            "data_type": "TYPE_U32",
+            "price": 1.2
+        },
+        {
+            "id": "76",
+            "map": "americano_large",
+            "data_type": "TYPE_U32",
+            "price": 1.5
+        },
+        {
+            "id": "92",
+            "map": "2x_espresso",
+            "data_type": "TYPE_U32",
+            "price": 2.2
+        },
+        {
+            "id": "96",
+            "map": "kaffee_creme",
+            "data_type": "TYPE_U32",
+            "price": 1.3
+        },
+
+
+
+        {
+            "id": "coffee_beans_left",
+            "map": "coffee_beans_left",
+            "data_type": "TYPE_FLOAT"
+        },
+        {
+            "id": "fresh_milk",
+            "map": "fresh_milk",
+            "data_type": "TYPE_FLOAT"
+        },
+        {
+            "id": "machine_sn",
+            "data_type": "TYPE_ASCII"
+        },
+        {
+            "id": "customer_id",
+            "data_type": "TYPE_ASCII"
+        },
+        {
+            "id": "outlet_id",
+            "data_type": "TYPE_ASCII"
+        }
+    ]
+}

@@ -1,0 +1,37 @@
+set(eva_dts_engine_micro_srcs "evadtsEngine.c"
+        "src/evadtsConfig.c"
+        "src/evadtsRetriever.c"
+        "src/sensor/evadtsAudit.c"
+        "src/sensor/evadtsSensor.c"
+        "src/evadtsSerial.c"
+        "src/ddcmp/dataHeaderMessage.c"
+        "src/ddcmp/wayMessage.c"
+        "src/ddcmp/ddcmpMessage.c"
+        "src/ddcmp/stackMessage.c"
+        "src/ddcmp/dataReadMessage.c"
+        "src/ddcmp/dataBlockMessage.c"
+        "src/ddcmp/ackMessage.c"
+        "src/evadtsParser.c"
+        "src/evadtsHandler.c"
+        "src/sensor/idSensor.c"
+        "src/sensor/paSensor.c"
+        "src/sensor/saSensor.c"
+        "src/data/link.c"
+        "src/data/stringList.c"
+        "src/data/evadtsDataBlock.c"
+        "src/data/evadtsDataBlockList.c"
+        "src/data/paSensorList.c"
+        "src/data/saSensorList.c"
+        "src/data/evadtsSensorList.c"
+        "src/data/evadtsPayloadRaw.c"
+        "src/repository/engineRepository.c"
+        "src/repository/paRepository.c"
+        "src/repository/saRepository.c"
+        "src/evadtsReport.c")
+
+idf_component_register (
+    SRCS "${eva_dts_engine_micro_srcs}"
+    INCLUDE_DIRS "include"
+    REQUIRES json nvs_flash udp_remote_debugger
+    EMBED_TXTFILES data/evoca_kalea_report_1.txt data/evoca_kalea_report_2.txt
+)
