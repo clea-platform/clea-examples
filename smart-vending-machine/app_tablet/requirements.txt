@@ -1,0 +1,11 @@
+pyqt5~=5.15.6
+opencv-python~=4.5.5.62
+numpy~=1.22.0
+imutils~=0.5.4
+dlib~=19.22.1
+matplotlib~=3.5.1
+scipy~=1.4.1
+tqdm~=4.62.3
+scikit-learn~=1.0.2
+pillow~=9.0.0
+astarte-device-sdk==0.10.0a5

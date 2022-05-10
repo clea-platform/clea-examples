@@ -1,0 +1,5 @@
+deepface==0.0.70
+tensorflow-estimator==2.2
+mtcnn
+keras==2.3.1
+segmentation-models==1.0.1
