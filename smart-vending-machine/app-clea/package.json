@@ -40,7 +40,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "build-bundle": "webpack"
+    "build-bundle": "webpack",
+    "watch-bundle": "webpack --mode=development --watch"
   },
   "eslintConfig": {
     "extends": [
