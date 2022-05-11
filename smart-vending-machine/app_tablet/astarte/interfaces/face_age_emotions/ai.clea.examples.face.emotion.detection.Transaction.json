@@ -1,0 +1,60 @@
+{
+  "interface_name": "ai.clea.examples.face.emotion.detection.Transaction",
+  "version_major": 0,
+  "version_minor": 1,
+  "type": "datastream",
+  "ownership": "device",
+  "aggregation": "object",
+  "description": "Single transaction from the vending machine",
+  "mappings": [
+      {
+          "endpoint": "/transaction/age",
+          "type": "integer",
+          "database_retention_policy": "use_ttl",
+          "database_retention_ttl": 31536000,
+          "explicit_timestamp": true
+      },
+      {
+          "endpoint": "/transaction/emotion",
+          "type": "string",
+          "database_retention_policy": "use_ttl",
+          "database_retention_ttl": 31536000,
+          "explicit_timestamp": true
+      },
+      {
+          "endpoint": "/transaction/gender",
+          "type": "string",
+          "database_retention_policy": "use_ttl",
+          "database_retention_ttl": 31536000,
+          "explicit_timestamp": true
+      },
+      {
+          "endpoint": "/transaction/price",
+          "type": "double",
+          "database_retention_policy": "use_ttl",
+          "database_retention_ttl": 31536000,
+          "explicit_timestamp": true
+      },
+      {
+          "endpoint": "/transaction/suggestion",
+          "type": "string",
+          "database_retention_policy": "use_ttl",
+          "database_retention_ttl": 31536000,
+          "explicit_timestamp": true
+      },
+      {
+          "endpoint": "/transaction/choice",
+          "type": "string",
+          "database_retention_policy": "use_ttl",
+          "database_retention_ttl": 31536000,
+          "explicit_timestamp": true
+      },
+      {
+          "endpoint": "/transaction/timedate",
+          "type": "datetime",
+          "database_retention_policy": "use_ttl",
+          "database_retention_ttl": 31536000,
+          "explicit_timestamp": true
+      }
+  ]
+}
