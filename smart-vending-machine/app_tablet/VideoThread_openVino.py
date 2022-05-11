@@ -51,16 +51,22 @@ class VideoThread(QThread):
         ie = IECore()
 
         self.net_face_det = ie.read_network(
-            model=".\\model\\face-detection-retail-0004\\FP16\\face-detection-retail-0004.xml",
-            weights=".\\model\\face-detection-retail-0004\\FP16\\face-detection-retail-0004.bin",
+            #model=".\\model\\face-detection-retail-0004\\FP16\\face-detection-retail-0004.xml",
+            #weights=".\\model\\face-detection-retail-0004\\FP16\\face-detection-retail-0004.bin",
+            model="./model/face-detection-retail-0004/FP16/face-detection-retail-0004.xml",
+            weights="./model/face-detection-retail-0004/FP16/face-detection-retail-0004.bin",
         )
         self.net_age_gen = ie.read_network(
-            model=".\\model\\age-gender-recognition-retail-0013\\FP16\\age-gender-recognition-retail-0013.xml",
-            weights=".\\model\\age-gender-recognition-retail-0013\\FP16\\age-gender-recognition-retail-0013.bin",
+            #model=".\\model\\age-gender-recognition-retail-0013\\FP16\\age-gender-recognition-retail-0013.xml",
+            #weights=".\\model\\age-gender-recognition-retail-0013\\FP16\\age-gender-recognition-retail-0013.bin",
+            model="./model/age-gender-recognition-retail-0013/FP16/age-gender-recognition-retail-0013.xml",
+            weights="./model/age-gender-recognition-retail-0013/FP16/age-gender-recognition-retail-0013.bin",
         )
         self.net_emotions = ie.read_network(
-            model=".\\model\\emotions-recognition-retail-0003\\FP16\\emotions-recognition-retail-0003.xml",
-            weights=".\\model\\emotions-recognition-retail-0003\\FP16\\emotions-recognition-retail-0003.bin",
+            #model=".\\model\\emotions-recognition-retail-0003\\FP16\\emotions-recognition-retail-0003.xml",
+            #weights=".\\model\\emotions-recognition-retail-0003\\FP16\\emotions-recognition-retail-0003.bin",
+            model="./model/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.xml",
+            weights="./model/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.bin",
         )
         self.exec_net_face_det = ie.load_network(self.net_face_det, "CPU")
         self.exec_net_age_gen = ie.load_network(self.net_age_gen, "CPU")

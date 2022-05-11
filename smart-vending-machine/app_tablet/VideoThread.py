@@ -1,20 +1,14 @@
 import cv2
 import numpy as np
 import pandas as pd
+from timeit import default_timer as timer
 import time
 
-from PyQt5.QtCore import pyqtSignal, QThread, QTimer
-
-from deepface import DeepFace
-from deepface.detectors import FaceDetector
-from deepface.extendedmodels import Age
-from deepface.commons import functions, realtime, distance as dst
+from PyQt5.QtCore import (Qt, QObject, pyqtSignal, QThread, QTimer)
+from openvino.inference_engine import IECore
 
 from utils.definitions import emotions, genders
 import os
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
 
 DEBUG = False
 
@@ -36,14 +30,12 @@ def get_bigger_face(locs):
 
 
 class VideoThread(QThread):
-
     updated = pyqtSignal()  # in order to work it has to be defined out of the contructor
 
     def __init__(self, frame_threshold=50, time_threshold=10, source=0):
         super().__init__()
 
         self.currentFrame = None
-
         self.active = False
         self.pause = False
         self.source = source
@@ -55,16 +47,31 @@ class VideoThread(QThread):
         self.init_models()
 
     def init_models(self):
-        self.face_detector = FaceDetector.build_model(self.detector_backend)
-        print("Detector backend is ", self.detector_backend)
-        # --------------------------
         tic = time.time()
-        self.emotion_model = DeepFace.build_model('Emotion')
-        print("Emotion model loaded")
-        self.age_model = DeepFace.build_model('Age')
-        print("Age model loaded")
-        self.gender_model = DeepFace.build_model('Gender')
-        print("Gender model loaded")
+        ie = IECore()
+
+        self.net_face_det = ie.read_network(
+            # model=".\\model\\face-detection-retail-0004\\FP16\\face-detection-retail-0004.xml",
+            # weights=".\\model\\face-detection-retail-0004\\FP16\\face-detection-retail-0004.bin",
+            model="./model/face-detection-retail-0004/FP16/face-detection-retail-0004.xml",
+            weights="./model/face-detection-retail-0004/FP16/face-detection-retail-0004.bin",
+        )
+        self.net_age_gen = ie.read_network(
+            # model=".\\model\\age-gender-recognition-retail-0013\\FP16\\age-gender-recognition-retail-0013.xml",
+            # weights=".\\model\\age-gender-recognition-retail-0013\\FP16\\age-gender-recognition-retail-0013.bin",
+            model="./model/age-gender-recognition-retail-0013/FP16/age-gender-recognition-retail-0013.xml",
+            weights="./model/age-gender-recognition-retail-0013/FP16/age-gender-recognition-retail-0013.bin",
+        )
+        self.net_emotions = ie.read_network(
+            # model=".\\model\\emotions-recognition-retail-0003\\FP16\\emotions-recognition-retail-0003.xml",
+            # weights=".\\model\\emotions-recognition-retail-0003\\FP16\\emotions-recognition-retail-0003.bin",
+            model="./model/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.xml",
+            weights="./model/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.bin",
+        )
+        self.exec_net_face_det = ie.load_network(self.net_face_det, "CPU")
+        self.exec_net_age_gen = ie.load_network(self.net_age_gen, "CPU")
+        self.exec_net_emotions = ie.load_network(self.net_emotions, "CPU")
+
         toc = time.time()
         print("Facial attibute analysis models loaded in ", toc - tic, " seconds")
 
@@ -88,6 +95,7 @@ class VideoThread(QThread):
 
     def pause_loop(self):
         self.pause = True
+        # QTimer.singleShot(int(pause_time*1000), self.unpause)
 
     def unpause(self):
         self.pause = False
@@ -95,10 +103,25 @@ class VideoThread(QThread):
     def run(self):
         """Main loop of this Thread"""
         self.active = True
+
+        # output_layer_ir_face_det = next(iter(exec_net_face_det.outputs))
+        input_layer_ir_face_det = next(iter(self.exec_net_face_det.input_info))
+        # output_layer_ir_age_gen = next(iter(exec_net_age_gen.outputs))
+        input_layer_ir_age_gen = next(iter(self.exec_net_age_gen.input_info))
+        # output_layer_ir_emotions = next(iter(exec_net_emotions.outputs))
+        input_layer_ir_emotions = next(iter(self.exec_net_emotions.input_info))
+        # N,C,H,W = batch size, number of channels, height, width
+        _, _, H, W = self.net_face_det.input_info[input_layer_ir_face_det].tensor_desc.dims
+        _, _, H_ag, W_ag = self.net_age_gen.input_info[input_layer_ir_age_gen].tensor_desc.dims
+        _, _, H_em, W_em = self.net_emotions.input_info[input_layer_ir_emotions].tensor_desc.dims
+
         camera = cv2.VideoCapture(self.source)
 
+        emotion_labels = emotions
+
+        threshold_conf = 0.9
         freeze = False
-        face_detected = False
+        face_detected_bool = False
         face_included_frames = 0  # freeze screen if face detected sequantially 5 frames
         freezed_frame = 0
         tic = time.time()
@@ -107,58 +130,74 @@ class VideoThread(QThread):
             # Grab a single frame of video
             if not self.pause:
 
-                ret, frame = camera.read()
-
+                _, frame = camera.read()
+    
                 if frame is None:
                     break
 
                 frame = cv2.flip(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), 1)
 
                 raw_img = frame.copy()
-                resolution = frame.shape
-                resolution_x = frame.shape[1]
-                resolution_y = frame.shape[0]
-
                 if freeze == False:
-
                     try:
                         # faces store list of detected_face and region pair
-                        faces = FaceDetector.detect_faces(self.face_detector, self.detector_backend, frame, align=False)
+                        resized_frame = cv2.resize(raw_img, (W, H))
+                        input_frame = np.expand_dims(resized_frame.transpose(2, 0, 1), 0)
+                        face_detected = self.exec_net_face_det.infer(inputs={input_layer_ir_face_det: input_frame})
                     except:  # to avoid exception if no face detected
-                        faces = []
+                        face_detected = []
 
-                    if len(faces) == 0:
+                    if len(face_detected) == 0:
                         face_included_frames = 0
                 else:
-                    faces = []
+                    face_detected = []
+                resolution_x = frame.shape[1]
+                resolution_y = frame.shape[0]
+                rgb_image = frame
+
+
+                # Fetch image shapes to calculate ratio
+                (real_y, real_x), (resized_y, resized_x) = frame.shape[:2], resized_frame.shape[:2]
+                ratio_x, ratio_y = real_x / resized_x, real_y / resized_y
 
                 detected_faces = []
                 face_index = 0
-                for face, (x, y, w, h) in faces:
-                    if w > 130:  # discard small detected faces
+                area_max = 0
+                face_count = 0
+                if face_detected:
+                    for i in range(face_detected["detection_out"].shape[2]):
+                        conf = face_detected["detection_out"][0,0,i,2]
+                        if conf > threshold_conf:
+                            face_count += 1
+                            # Convert float to int and multiply corner position of each box by x and y ratio
+                            # In case that bounding box is found at the top of the image,
+                            # we position upper box bar little bit lower to make it visible on image(
+                            (x_min, y_min, x_max, y_max) = [
+                                int(max(corner_position * ratio_y *resized_y, 10)) if idx % 2
+                                else int(max(corner_position * ratio_x *resized_x, 10))
+                                for idx, corner_position in enumerate(face_detected["detection_out"][0,0,i,3:])
+                            ]
+                            face_detected_bool = True
+                            if face_index == 0:
+                                face_included_frames = face_included_frames + 1  # increase frame for a single face
+                                face_index = 1
+                            area = (x_max-x_min)*(y_max-y_min)
+                            if area > area_max:
+                                area_max = area
+                                detected_faces.append((x_min, y_min, x_max, y_max))
+                                cv2.rectangle(rgb_image, (x_min, y_min), (x_max, y_max), (67, 67, 67), 1)  # draw rectangle to main image
+                                cv2.putText(frame, str(self.frame_threshold - face_included_frames),
+                                            (int(x_min + (x_max-x_min) / 4)-30, int(y_min + (y_max-y_min) / 1.5)+10),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 255, 255), 2
+                                            )
+                if not face_count:
+                    face_included_frames = 0
 
-                        face_detected = True
-                        if face_index == 0:
-                            face_included_frames = face_included_frames + 1  # increase frame for a single face
-
-                        cv2.rectangle(frame, (x, y), (x + w, y + h), (67, 67, 67), 1)  # draw rectangle to main image
-
-                        cv2.putText(frame, str(self.frame_threshold - face_included_frames), (int(x + w / 4), int(y + h / 1.5)),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 255, 255), 2)
-
-                        # -------------------------------------
-
-                        detected_faces.append((x, y, w, h))
-                        face_index = face_index + 1
-
-                        # -------------------------------------
-
-                if face_detected==True and face_included_frames==self.frame_threshold and freeze==False:
+                if face_detected_bool==True and face_included_frames==self.frame_threshold and freeze==False:
                     freeze = True
                     base_img = raw_img.copy()
-                    detected_faces_final = detected_faces.copy()
                     tic = time.time()
-
+                
                 if freeze == True:
 
                     toc = time.time()
@@ -168,222 +207,80 @@ class VideoThread(QThread):
                             freeze_img = base_img.copy()
                             # freeze_img = np.zeros(resolution, np.uint8) #here, np.uint8 handles showing white area issue
 
-                            for detected_face in detected_faces_final:
-
+                            for detected_face in detected_faces:
                                 x = detected_face[0]
                                 y = detected_face[1]
-                                w = detected_face[2]
-                                h = detected_face[3]
+                                w = abs(detected_face[0] - detected_face[2])
+                                h = abs(detected_face[1] - detected_face[3])
 
-                                cv2.rectangle(freeze_img, (x, y), (x + w, y + h), (67, 67, 67),
-                                              1)  # draw rectangle to main image
+                                cv2.rectangle(freeze_img, (x, y), (x + w, y + h), (67, 67, 67),1)  # draw rectangle to main image
 
-                                # apply deep learning for custom_face
-                                custom_face = base_img[y:y + h, x:x + w]
+                                try:
+                                    custome_face = frame[y:y+h, x:x+w, :]
 
-                                # facial attribute analysis
-                                if self.enable_face_analysis == True:
+                                    resized_custome_face_ag = cv2.resize(custome_face, (W_ag, H_ag))
+                                    resized_custome_face_em = cv2.resize(custome_face, (W_em, H_em))
+                                    input_custome_face_ag = np.expand_dims(resized_custome_face_ag.transpose(2, 0, 1), 0)
+                                    input_custome_face_em = np.expand_dims(resized_custome_face_em.transpose(2, 0, 1), 0)
+                                    age_gender_prediction = self.exec_net_age_gen.infer(inputs={input_layer_ir_age_gen: input_custome_face_ag})
+                                    emotions_prediction = self.exec_net_emotions.infer(inputs={input_layer_ir_age_gen: input_custome_face_em})['prob_emotion'][0, :, 0, 0]
 
-                                    gray_img = functions.preprocess_face(img=custom_face, target_size=(48, 48),
-                                                                         grayscale=True,
-                                                                         enforce_detection=False, detector_backend='opencv')
+                                    if np.argmax(age_gender_prediction["prob"]) == 0:
+                                        gender = "W"
+                                    elif np.argmax(age_gender_prediction["prob"]) == 1:
+                                        gender = "M"
 
-                                    emotion_labels = ['Anger', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
-                                    emotion_predictions = self.emotion_model.predict(gray_img)[0, :]
-                                    sum_of_predictions = emotion_predictions.sum()
+                                    emotion_label = emotion_labels[np.argmax(emotions_prediction)]
 
-                                    mood_items = []
-                                    for i in range(0, len(emotion_labels)):
-                                        mood_item = []
-                                        emotion_label = emotion_labels[i]
-                                        emotion_prediction = 100 * emotion_predictions[i] / sum_of_predictions
-                                        mood_item.append(emotion_label)
-                                        mood_item.append(emotion_prediction)
-                                        mood_items.append(mood_item)
+                                    apparent_age = int(age_gender_prediction["age_conv3"][0,0,0,0]*100)
 
-                                    if emotion_labels[np.argmax(emotion_predictions)] == "Fear" or \
-                                            emotion_labels[np.argmax(emotion_predictions)] == "Disgust":
-                                        self.current_user['emotion'] = emotion_labels[np.argsort(emotion_predictions)[-2]]
-                                    else:
-                                        self.current_user['emotion'] = emotion_labels[np.argmax(emotion_predictions)]
-
-                                    emotion_df = pd.DataFrame(mood_items, columns=["emotion", "score"])
-                                    emotion_df = emotion_df.sort_values(by=["score"], ascending=False).reset_index(
-                                        drop=True)
-
-                                    # background of mood box
+                                    self.current_user['emotion'] = emotion_label
+                                    self.current_user['age'] = apparent_age
+                                    self.current_user['gender'] = gender
 
                                     # transparency
                                     overlay = freeze_img.copy()
                                     opacity = 0.4
 
-                                    # if x + w + pivot_img_size < resolution_x:
-                                    #     # right
-                                    #     cv2.rectangle(freeze_img
-                                    #                   # , (x+w,y+20)
-                                    #                   , (x + w, y)
-                                    #                   , (x + w + pivot_img_size, y + h)
-                                    #                   , (64, 64, 64), cv2.FILLED)
-                                    #
-                                    #     cv2.addWeighted(overlay, opacity, freeze_img, 1 - opacity, 0, freeze_img)
-                                    #
-                                    # elif x - pivot_img_size > 0:
-                                    #     # left
-                                    #     cv2.rectangle(freeze_img
-                                    #                   # , (x-pivot_img_size,y+20)
-                                    #                   , (x - pivot_img_size, y)
-                                    #                   , (x, y + h)
-                                    #                   , (64, 64, 64), cv2.FILLED)
-                                    #
-                                    #     cv2.addWeighted(overlay, opacity, freeze_img, 1 - opacity, 0, freeze_img)
-                                    #
-                                    # for index, instance in emotion_df.iterrows():
-                                    #     emotion_label = "%s " % (instance['emotion'])
-                                    #     emotion_score = instance['score'] / 100
-                                    #
-                                    #     bar_x = 35  # this is the size if an emotion is 100%
-                                    #     bar_x = int(bar_x * emotion_score)
-                                    #
-                                    #     if x + w + pivot_img_size < resolution_x:
-                                    #
-                                    #         text_location_y = y + 20 + (index + 1) * 20
-                                    #         text_location_x = x + w
-                                    #
-                                    #         if text_location_y < y + h:
-                                    #             cv2.putText(freeze_img, emotion_label, (text_location_x, text_location_y),
-                                    #                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-                                    #
-                                    #             cv2.rectangle(freeze_img
-                                    #                           , (x + w + 70, y + 13 + (index + 1) * 20)
-                                    #                           , (x + w + 70 + bar_x, y + 13 + (index + 1) * 20 + 5)
-                                    #                           , (255, 255, 255), cv2.FILLED)
-                                    #
-                                    #     elif x - pivot_img_size > 0:
-                                    #
-                                    #         text_location_y = y + 20 + (index + 1) * 20
-                                    #         text_location_x = x - pivot_img_size
-                                    #
-                                    #         if text_location_y <= y + h:
-                                    #             cv2.putText(freeze_img, emotion_label, (text_location_x, text_location_y),
-                                    #                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-                                    #
-                                    #             cv2.rectangle(freeze_img
-                                    #                           , (x - pivot_img_size + 70, y + 13 + (index + 1) * 20)
-                                    #                           , (x - pivot_img_size + 70 + bar_x,
-                                    #                              y + 13 + (index + 1) * 20 + 5)
-                                    #                           , (255, 255, 255), cv2.FILLED)
+                                    x_info = 10
+                                    y_info = 10
 
-                                # -------------------------------
+                                    cv2.rectangle(freeze_img, (x_info, y_info), (x_info + 120, y_info + 80), (64, 64, 64), cv2.FILLED)
+                                    cv2.addWeighted(overlay, opacity, freeze_img, 1 - opacity, 0, freeze_img)
 
-                                face_224 = functions.preprocess_face(img=custom_face, target_size=(224, 224),
-                                                                     grayscale=False,
-                                                                     enforce_detection=False, detector_backend='opencv')
+                                    x_info += 2
+                                    y_info += 20
+                                    cv2.putText(freeze_img, f"Emotion: {emotion_label}", (x_info, y_info),
+                                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+                                    # x_info += 20
+                                    y_info += 20
+                                    cv2.putText(freeze_img, f"Gender: {gender}", (x_info, y_info),
+                                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+                                    # x_info += 20
+                                    y_info += 20
+                                    cv2.putText(freeze_img, f"Age: {apparent_age}", (x_info, y_info),
+                                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+                                    break
+                                    
+                                except Exception as e:
+                                    print(e)
+                                
+                            tic = time.time()
 
-                                age_predictions = self.age_model.predict(face_224)[0, :]
-                                apparent_age = Age.findApparentAge(age_predictions)
-
-                                # -------------------------------
-
-                                gender_prediction = self.gender_model.predict(face_224)[0, :]
-
-                                if np.argmax(gender_prediction) == 0:
-                                    gender = genders[0]     # Female
-                                elif np.argmax(gender_prediction) == 1:
-                                    gender = genders[1]     # Male
-
-                                analysis_report = str(int(apparent_age)) + " " + gender
-
-                                self.current_user['age'] = apparent_age
-                                self.current_user['gender'] = gender
-
-                                # -------------------------------
-
-                                info_box_color = (46, 200, 255)
-
-                                # # top
-                                # if y - pivot_img_size + int(pivot_img_size / 5) > 0:
-                                #
-                                #     triangle_coordinates = np.array([
-                                #         (x + int(w / 2), y)
-                                #         , (x + int(w / 2) - int(w / 10), y - int(pivot_img_size / 3))
-                                #         , (x + int(w / 2) + int(w / 10), y - int(pivot_img_size / 3))
-                                #     ])
-                                #
-                                #     cv2.drawContours(freeze_img, [triangle_coordinates], 0, info_box_color, -1)
-                                #
-                                #     cv2.rectangle(freeze_img,
-                                #                   (x + int(w / 5), y - pivot_img_size + int(pivot_img_size / 5)),
-                                #                   (x + w - int(w / 5), y - int(pivot_img_size / 3)), info_box_color,
-                                #                   cv2.FILLED)
-                                #
-                                #     cv2.putText(freeze_img, analysis_report,
-                                #                 (x + int(w / 3.5), y - int(pivot_img_size / 2.1)),
-                                #                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 111, 255), 2)
-                                #
-                                # # bottom
-                                # elif y + h + pivot_img_size - int(pivot_img_size / 5) < resolution_y:
-                                #
-                                #     triangle_coordinates = np.array([
-                                #         (x + int(w / 2), y + h)
-                                #         , (x + int(w / 2) - int(w / 10), y + h + int(pivot_img_size / 3))
-                                #         , (x + int(w / 2) + int(w / 10), y + h + int(pivot_img_size / 3))
-                                #     ])
-                                #
-                                #     cv2.drawContours(freeze_img, [triangle_coordinates], 0, info_box_color, -1)
-                                #
-                                #     cv2.rectangle(freeze_img, (x + int(w / 5), y + h + int(pivot_img_size / 3)),
-                                #                   (x + w - int(w / 5), y + h + pivot_img_size - int(pivot_img_size / 5)),
-                                #                   info_box_color, cv2.FILLED)
-                                #
-                                #     cv2.putText(freeze_img, analysis_report,
-                                #                 (x + int(w / 3.5), y + h + int(pivot_img_size / 1.5)),
-                                #                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 111, 255), 2)
-
-                                # ---------------
-                                tic = time.time()  # in this way, freezed image can show 5 seconds
-
-                                # ----------------
-
-                                # transparency
-                                overlay = freeze_img.copy()
-                                opacity = 0.4
-
-                                x_info = 10
-                                y_info = 10
-
-                                cv2.rectangle(freeze_img, (x_info, y_info), (x_info + 120, y_info + 80), (64, 64, 64), cv2.FILLED)
-                                cv2.addWeighted(overlay, opacity, freeze_img, 1 - opacity, 0, freeze_img)
-
-                                x_info += 2
-                                y_info += 20
-                                cv2.putText(freeze_img, f"Emotion: {self.current_user['emotion']}", (x_info, y_info),
-                                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-                                # x_info += 20
-                                y_info += 20
-                                cv2.putText(freeze_img, f"Gender: {gender}", (x_info, y_info),
-                                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-                                # x_info += 20
-                                y_info += 20
-                                cv2.putText(freeze_img, f"Age: {str(int(apparent_age))}", (x_info, y_info),
-                                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-
+                            
                         time_left = int(self.time_threshold - (toc - tic) + 1)
 
                         cv2.rectangle(freeze_img, (10, resolution_y-50), (90, resolution_y-10), (67, 67, 67), -10)
                         cv2.putText(freeze_img, str(time_left), (40, resolution_y-20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1)
 
-
-                        # Store the current image
+                        freezed_frame = freezed_frame + 1
                         self.currentFrame = freeze_img
 
-                        freezed_frame = freezed_frame + 1
-
                     else:
-                        face_detected = False
+                        face_detected_bool = False
                         face_included_frames = 0
                         freeze = False
                         freezed_frame = 0
-
                 else:
                     # Store the current image
                     self.currentFrame = frame
@@ -396,7 +293,6 @@ class VideoThread(QThread):
                     self.updated.emit()
 
             else:
-                # self.current_user = {}
                 QTimer.singleShot(int(1000), self.unpause)
 
     def stop(self):
