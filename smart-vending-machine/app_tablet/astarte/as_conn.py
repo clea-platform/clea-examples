@@ -20,10 +20,10 @@ class Astarte(metaclass=Singleton):
 # Configuration Variables #
 ###########################
 persistency_dir = 'persistency'
-device_id = '2-ASUSOCIwSERS-GWLA-Xg'
-realm = 'devenv0'
-credentials_secret = ''
-pairing_base_url = "https://api.demo.clea.cloud/pairing"
+device_id = '<device ID>'
+realm = '<realm name>'
+credentials_secret = '<credentials secret>'
+pairing_base_url = "<URL>"
 interfaces_dir_path = "astarte/interfaces/face_age_emotions/*.json"
 
 
