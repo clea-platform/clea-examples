@@ -75,4 +75,4 @@ def set_device():
 
 
 def send_data(device, data):
-    device.send_aggregate("devenv0.face.emotion.detection.Transaction", "/transaction", payload=data, timestamp=time.time())
+    device.send_aggregate("ai.clea.examples.face.emotion.detection.Transaction", "/transaction", payload=data, timestamp=time.time())
