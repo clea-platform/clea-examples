@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QWidget, QInputDia
 from PyQt5.QtGui import QImage, qRgb, QPixmap, QMouseEvent
 
 from VideoThread import VideoThread
-# from VideoThread_openVino import VideoThread
+#from VideoThread_openVino import VideoThread
 from ProductBox import ProductBox
 
 
