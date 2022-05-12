@@ -1,0 +1,9 @@
+[submodule "components/ehm-modem_simcomm"]
+	path = components/ehm-modem_simcomm
+	url = ../edgehog-micro-components/ehm-modem_simcomm.git
+[submodule "components/d47_battery_module"]
+	path = components/d47_battery_module
+	url = ../edgehog-micro-components/d47_battery_module.git
+[submodule "components/d47_accelerometer"]
+	path = components/d47_accelerometer
+	url = git@git.seco.com:iot/edgehog-micro-components/d47_accelerometer.git

@@ -1,0 +1,10 @@
+build/
+.vscode/
+
+.idea
+
+cmake-build-debug
+
+**/.DS_Store
+components/astarte-device-sdk-esp32
+components/edgehog_micro
