@@ -1,0 +1,16 @@
+.title {
+  font-size: medium;
+  font-weight: 420;
+  margin-left: 0.5em;
+}
+
+.unit {
+  color: gray;
+  font-size: 100;
+  font-weight: 420;
+}
+
+.value {
+  font-size: 3em;
+  font-weight: 500;
+}

@@ -1,0 +1,25 @@
+.alert-banner-card {
+  border: 0;
+  border-radius: 0.8em;
+}
+.alert-banner-title {
+  color: rgba(255, 255, 255, 0.842);
+  font-size: 1.2em;
+  font-weight: bold;
+}
+.alert-banner-subtitle {
+  color: rgba(255, 255, 255, 0.842);
+  font-size: 1em;
+  font-weight: bold;
+}
+.alert-banner-value {
+  color: white;
+  font-size: 5.2em;
+  font-weight: bolder;
+}
+.alert-banner-icon {
+  width: 15%;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
