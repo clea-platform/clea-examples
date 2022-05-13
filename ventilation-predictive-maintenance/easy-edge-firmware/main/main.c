@@ -574,27 +574,7 @@ void app_main(void) {
     ESP_LOGI (TAG, "Arduino initlized");
     
     printf ("\n\n\n\n");
-
-#if 0
-    // Creating main task
-    BaseType_t task_creation;
-    TaskHandle_t task_handle    = NULL;
-    /* Create the task, storing the handle. */
-    task_creation   = xTaskCreate(
-                        main_task,
-                        "main_task",
-                        TASK_STACK_DEPTH,
-                        (void*) astarte_handler,
-                        0,
-                        &task_handle);
-
-    if (task_creation == pdPASS) {
-        ESP_LOGI (TAG, "Started main_task");
-        vTaskDelete (task_handle);
-    }
-#endif
-
-    ESP_LOGD (TAG, "Current time %lld", get_millis());
-
+    
+    // Executing main task
     main_task (astarte_handler);
 }
