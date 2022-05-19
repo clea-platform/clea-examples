@@ -4,7 +4,7 @@
  * @author Luca Di Mauro (luca.dimauro@seco.com)
  * @brief 
  * @version 0.1
- * @date 2022-04-22
+ * @date 2022-05-13
  * 
  * @copyright Copyright (c) 2022
  * 
@@ -150,63 +150,6 @@ static char *_build_path (char *prefix, char *suffix) {
 
     return path;
 }
-
-#if 0
-static esp_err_t _publish_data (struct _astarte_handler_s *this, char *beverage_id, double revenue, int units) {
-
-    const char *TAG     = "_publish_data";
-    esp_err_t success   = ESP_OK;
-    int doc_len         = 0;
-    char *revenues_path = _build_path (beverage_id, "revenues");
-    char *units_path    = _build_path (beverage_id, "units");
-    ESP_LOGD (TAG, "Using paths:\n\t%s\n\t%s", revenues_path, units_path);//FIXME REMOVE ME!
-    ESP_LOGW (TAG, "Values for %s are (u) %d\t(r) %f", beverage_id, units, revenue);//FIXME REMOVE ME!
-    struct astarte_bson_serializer_t bs;
-    
-    memset (&bs, '\0', sizeof(struct astarte_bson_serializer_t));
-    astarte_bson_serializer_init(&bs);
-    astarte_bson_serializer_append_int32 (&bs, "units", units);
-    astarte_bson_serializer_append_double (&bs, "revenues", revenue);
-
-    astarte_bson_serializer_append_end_of_document(&bs);
-
-    const void *doc = astarte_bson_serializer_get_document (&bs, &doc_len);
-    if (!doc) {
-        ESP_LOGE (TAG, "Cannot serialize bson document!\n\tunits: %d\n\trevenues: %f", units, revenue);
-        success = ESP_FAIL;
-    }
-    else {
-        astarte_err_t res   = ASTARTE_OK;
-
-        res = astarte_device_stream_double (this->astarte_device_handle, beverage_data_interface.name,
-                                            revenues_path, revenue, 0);
-        if (res != ASTARTE_OK) {
-            success = ESP_FAIL;
-            ESP_LOGE (TAG, "Cannot publish data to astarte mapping %s", revenues_path);
-            goto error_handling;
-        }
-
-        res = astarte_device_stream_integer (this->astarte_device_handle, beverage_data_interface.name,
-                                                units_path, units, 0);
-        if (res != ASTARTE_OK) {
-            success = ESP_FAIL;
-            ESP_LOGE (TAG, "Cannot publish data to astarte mapping %s", units_path);
-            goto error_handling;
-        }
-    }
-    astarte_bson_serializer_destroy (&bs);
-    
-    return success;
-
-error_handling:
-    ESP_LOGE (TAG, "Handling error!");
-    astarte_bson_serializer_destroy (&bs);
-    free (revenues_path);
-    free (units_path);
-
-    return success;
-}
-#endif
 
 static esp_err_t _publish_flow (struct _astarte_handler_s *this, double flow_value) {
     astarte_err_t success   = astarte_device_stream_double (this->astarte_device_handle, "com.seco.AirData",

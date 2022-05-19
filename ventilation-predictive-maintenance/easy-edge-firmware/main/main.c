@@ -4,7 +4,7 @@
  * @author Luca Di Mauro (luca.dimauro@seco.com)
  * @brief Entry point for Easy Edge project
  * @version 0.1
- * @date 2022-04-22
+ * @date 2022-05-13
  * 
  * @copyright Copyright (c) 2022
  * 
