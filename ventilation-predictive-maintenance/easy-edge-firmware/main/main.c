@@ -564,8 +564,8 @@ void app_main(void) {
     ESP_ERROR_CHECK (wifi_initilizer());
     ESP_LOGI (TAG, "WiFi initialized");
 
-    /*ESP_ERROR_CHECK (sntp_initializer());
-    ESP_LOGI (TAG, "SNTP initialized");*/
+    ESP_ERROR_CHECK (sntp_initializer());
+    ESP_LOGI (TAG, "SNTP initialized");
 
     ESP_ERROR_CHECK (astarte_initializer(&astarte_handler));
     ESP_LOGI (TAG, "Astarte initlized");
