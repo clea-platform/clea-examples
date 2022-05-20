@@ -188,7 +188,7 @@ static esp_err_t _publish_event (struct _astarte_handler_s *this, int event_id, 
     printf("Sending Event with value: %f\n", event_value);
     int size;
     const void *document    = astarte_bson_serializer_get_document(&aggr, &size);
-    astarte_err_t res       = astarte_device_stream_aggregate (this->astarte_device_handle, "com.seco.EventsHistory",
+    astarte_err_t res       = astarte_device_stream_aggregate (this->astarte_device_handle, "ai.clea.examples.EventsHistory",
                                                                 "/event", document, 0);
     printf("Event sent!\n");
 

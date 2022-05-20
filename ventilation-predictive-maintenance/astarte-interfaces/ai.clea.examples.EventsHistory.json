@@ -1,5 +1,5 @@
 {
-    "interface_name": "com.seco.EventsHistory",
+    "interface_name": "ai.clea.examples.EventsHistory",
     "version_major": 0,
     "version_minor": 1,
     "type": "datastream",

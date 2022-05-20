@@ -66,7 +66,7 @@ const static astarte_interface_t air_data_interface = {
 };
 
 const static astarte_interface_t event_history_interface    = {
-    .name           = "com.seco.EventsHistory",
+    .name           = "ai.clea.examples.EventsHistory",
     .major_version  = 0,
     .minor_version  = 1,
     .ownership      = OWNERSHIP_DEVICE,

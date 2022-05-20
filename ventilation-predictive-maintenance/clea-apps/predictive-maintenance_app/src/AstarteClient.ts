@@ -107,7 +107,7 @@ class AstarteClient {
     downsamplingTo,
   }: AirFluxDataParameters): Promise<AirFluxEvent[]> {
     const { appEngineUrl, realm, token } = this.config;
-    const interfaceName = "com.seco.EventsHistory";
+    const interfaceName = "ai.clea.examples.EventsHistory";
     const path = `v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}/${endpoint}`;
     const requestUrl = new URL(path, appEngineUrl);
     const query: Record<string, string> = {};
