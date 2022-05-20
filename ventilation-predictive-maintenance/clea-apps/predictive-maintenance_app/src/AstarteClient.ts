@@ -55,7 +55,7 @@ class AstarteClient {
     downsamplingTo,
   }: AirFluxDataParameters): Promise<AirflowData[] | AirPollutionData[] | AirVelocityData[]> {
     const { appEngineUrl, realm, token } = this.config;
-    const interfaceName = "com.seco.AirData";
+    const interfaceName = "ai.clea.examples.AirData";
     const path = `v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}/${endpoint}`;
     const requestUrl = new URL(path, appEngineUrl);
     const query: Record<string, string> = {};

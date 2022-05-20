@@ -152,19 +152,19 @@ static char *_build_path (char *prefix, char *suffix) {
 }
 
 static esp_err_t _publish_flow (struct _astarte_handler_s *this, double flow_value) {
-    astarte_err_t success   = astarte_device_stream_double (this->astarte_device_handle, "com.seco.AirData",
+    astarte_err_t success   = astarte_device_stream_double (this->astarte_device_handle, "ai.clea.examples.AirData",
                                                             "/flow", flow_value, 0);
     return (success == ASTARTE_OK);
 }
 
 static esp_err_t _publish_velocity (struct _astarte_handler_s *this, double velocity_value) {
-    astarte_err_t success   = astarte_device_stream_double (this->astarte_device_handle, "com.seco.AirData",
+    astarte_err_t success   = astarte_device_stream_double (this->astarte_device_handle, "ai.clea.examples.AirData",
                                                             "/velocity", velocity_value, 0);
     return (success == ASTARTE_OK);
 }
 
 static esp_err_t _publish_pollution (struct _astarte_handler_s *this, double pollution_value) {
-    astarte_err_t success   = astarte_device_stream_double (this->astarte_device_handle, "com.seco.AirData",
+    astarte_err_t success   = astarte_device_stream_double (this->astarte_device_handle, "ai.clea.examples.AirData",
                                                             "/pollution", pollution_value, 0);
     return (success == ASTARTE_OK);
 }

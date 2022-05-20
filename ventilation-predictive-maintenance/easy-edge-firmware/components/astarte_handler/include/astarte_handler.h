@@ -58,7 +58,7 @@ typedef struct _astarte_handler_s {
 // Defining astarte interfaces
 
 const static astarte_interface_t air_data_interface = {
-    .name           = "com.seco.AirData",
+    .name           = "ai.clea.examples.AirData",
     .major_version  = 0,
     .minor_version  = 1,
     .ownership      = OWNERSHIP_DEVICE,
