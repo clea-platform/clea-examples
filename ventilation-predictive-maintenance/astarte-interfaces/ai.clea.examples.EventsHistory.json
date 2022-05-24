@@ -1,0 +1,34 @@
+{
+    "interface_name": "ai.clea.examples.EventsHistory",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "aggregation": "object",
+    "mappings": [
+        {
+            "endpoint": "/event/detection",
+            "type": "string",
+            "reliability": "guaranteed",
+            "database_retention_policy": "use_ttl",
+            "database_retention_ttl": 31536000,
+            "description": "The detection type: Air Flow, Air Pollution or Air Velocity."
+        },
+        {
+            "endpoint": "/event/measure",
+            "type": "double",
+            "reliability": "guaranteed",
+            "database_retention_policy": "use_ttl",
+            "database_retention_ttl": 31536000,
+            "description": "The detection value, which semantic will be different depending on the detection type."
+        },
+        {
+            "endpoint": "/event/noteCode",
+            "type": "integer",
+            "reliability": "guaranteed",
+            "database_retention_policy": "use_ttl",
+            "database_retention_ttl": 31536000,
+            "description": "The detection description code, which represent the event description in details."
+        }
+    ]
+}

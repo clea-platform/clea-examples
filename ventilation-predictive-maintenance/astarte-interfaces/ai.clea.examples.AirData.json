@@ -1,0 +1,33 @@
+{
+    "interface_name": "ai.clea.examples.AirData",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "mappings": [
+        {
+            "endpoint": "/flow",
+            "type": "double",
+            "database_retention_policy": "use_ttl",
+            "database_retention_ttl": 31536000,
+            "explicit_timestamp": true,
+            "description": "Air Flow quantity. Between 0 and 1."
+        },
+        {
+            "endpoint": "/velocity",
+            "type": "double",
+            "database_retention_policy": "use_ttl",
+            "database_retention_ttl": 31536000,
+            "explicit_timestamp": true,
+            "description": "Air Velocity in m/s."
+        },
+        {
+            "endpoint": "/pollution",
+            "type": "double",
+            "database_retention_policy": "use_ttl",
+            "database_retention_ttl": 31536000,
+            "explicit_timestamp": true,
+            "description": "Air pollution in μg/m3."
+        }
+    ]
+}

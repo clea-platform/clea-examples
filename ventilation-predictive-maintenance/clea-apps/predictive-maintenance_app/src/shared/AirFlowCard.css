@@ -1,0 +1,41 @@
+#vertical-box-default {
+  height: 40px;
+  width: 8px;
+  background-color: #11b0ef;
+  border-radius: 10px;
+  border-width: 0.7px;
+  border-style: solid;
+  border-color: rgb(175, 171, 171);
+}
+#vertical-box-danger {
+  height: 40px;
+  width: 8px;
+  background-color: red;
+  border-radius: 10px;
+  border-width: 0.7px;
+  border-style: solid;
+  border-color: rgb(175, 171, 171);
+}
+#vertical-box-warning {
+  height: 40px;
+  width: 8px;
+  background-color: orange;
+  border-radius: 10px;
+  border-width: 0.7px;
+  border-style: solid;
+  border-color: rgb(175, 171, 171);
+}
+
+#vertical-box-empty {
+  height: 40px;
+  width: 8px;
+  border-radius: 10px;
+  border-width: 0.7px;
+  border-style: solid;
+  border-color: rgb(175, 171, 171);
+}
+
+#value-perc {
+  font-size: 3.5em;
+  font-weight: 800;
+}
