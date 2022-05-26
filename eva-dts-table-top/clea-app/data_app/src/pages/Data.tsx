@@ -24,7 +24,7 @@ type DataProps = {
 const Data: React.FC<DataProps> = ({ deviceId, astarteClient }: DataProps) => {
   const intl = useIntl();
 
-  const beverages = ["espresso", "2x_espresso", "kaffee_creme", "2x_kaffee_creme", /*"americano_large",*/ "cappuccino", "latte_macchiato"];
+  const beverages = ["espresso", "2x_espresso", "kaffee_creme", "2x_kaffee_creme", "americano_large", "cappuccino", "latte_macchiato", "hot_water"];
   const beverageNames = new Map([
       ["2x_espresso", intl.formatMessage({ id: "beverages_full.2x_espresso" })],
       ["espresso", intl.formatMessage({ id: "beverages_full.espresso" })],
@@ -33,6 +33,7 @@ const Data: React.FC<DataProps> = ({ deviceId, astarteClient }: DataProps) => {
       ["americano_large", intl.formatMessage({ id: "beverages_full.americano_large" })],
       ["cappuccino", intl.formatMessage({ id: "beverages_full.cappuccino" })],
       ["latte_macchiato", intl.formatMessage({ id: "beverages_full.latte_macchiato" })],
+      ["hot_water", intl.formatMessage({ id: "beverages_full.hot_water" })]
   ]);
   const getBeverageFullName = (bev: string): string | undefined => {
     return beverageNames.get(bev);

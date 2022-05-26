@@ -75,6 +75,7 @@ const Filter: React.FC<FilterProps> = ({ data, setDownloadLink }) => {
       ["americano_large", intl.formatMessage({ id: "beverages_full.americano_large" })],
       ["cappuccino", intl.formatMessage({ id: "beverages_full.cappuccino" })],
       ["latte_macchiato", intl.formatMessage({ id: "beverages_full.latte_macchiato" })],
+      ["hot_water", intl.formatMessage({ id: "beverages_full.hot_water" })]
   ]);
   const getBeverageShortName = (bev: string): string | undefined => {
     return beverageNames.get(bev);
