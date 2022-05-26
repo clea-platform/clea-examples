@@ -25,16 +25,18 @@
     "2x_kaffee_creme": "2xKaffee",
     "americano_large": "Americano",
     "cappuccino": "Cap",
-    "latte_macchiato": "Macc"
+    "latte_macchiato": "Macc",
+    "hot_water": "Acqua"
   },
   "beverages_full": {
     "espresso": "Espresso",
     "2x_espresso": "2 x Espresso",
     "kaffee_creme": "Kaffe Creme",
     "2x_kaffee_creme": "2 x Kaffee Creme",
-    "americano_large": "Americano Lungo",
+    "americano_large": "Americano",
     "cappuccino": "Cappuccino",
-    "latte_macchiato": "Latte Macchiato"
+    "latte_macchiato": "Latte Macchiato",
+    "hot_water": "Acqua Calda"
   },
 
   "tab_title": "Panoramica prodotti",
