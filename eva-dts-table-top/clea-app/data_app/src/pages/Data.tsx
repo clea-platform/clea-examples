@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import moment from "moment";
-import { maxBy } from "lodash";
+import { maxBy, sortBy } from "lodash";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import AstarteClient from "../AstarteClient";
@@ -11,10 +11,11 @@ import Filter, { BeverageData } from "../components/Filter";
 
 import "./Data.css";
 
-const colors = ["red", "blue", "yellow", "green", "pink", "cyan", "orange", "lime", "grape", "indigo", "teal", "violet"];
-const pickColor = (idx: number) => {
-  return colors[idx % colors.length];
-};
+//TODO: this can be removed eventually
+// const colors = ["red", "blue", "yellow", "green", "pink", "cyan", "orange", "lime", "grape", "indigo", "teal", "violet"];
+// const pickColor = (idx: number) => {
+//   return colors[idx % colors.length];
+// };
 
 type DataProps = {
   deviceId: string;
@@ -24,16 +25,50 @@ type DataProps = {
 const Data: React.FC<DataProps> = ({ deviceId, astarteClient }: DataProps) => {
   const intl = useIntl();
 
-  const beverages = ["espresso", "2x_espresso", "kaffee_creme", "2x_kaffee_creme", "americano_large", "cappuccino", "latte_macchiato", "hot_water"];
+  const beverages = [
+    {
+      name: "2x_espresso",
+      color: "red",
+    },
+    {
+      name: "espresso",
+      color: "blue",
+    },
+    {
+      name: "kaffee_creme",
+      color: "yellow",
+    },
+    {
+      name: "2x_kaffee_creme",
+      color: "green",
+    },
+    {
+      name: "americano_large",
+      color: "pink",
+    },
+    {
+      name: "cappuccino",
+      color: "cyan",
+    },
+    {
+      name: "latte_macchiato",
+      color: "orange",
+    },
+    {
+      name: "hot_water",
+      color: "lime",
+    },
+  ];
+
   const beverageNames = new Map([
-      ["2x_espresso", intl.formatMessage({ id: "beverages_full.2x_espresso" })],
-      ["espresso", intl.formatMessage({ id: "beverages_full.espresso" })],
-      ["kaffee_creme", intl.formatMessage({ id: "beverages_full.kaffee_creme" })],
-      ["2x_kaffee_creme", intl.formatMessage({ id: "beverages_full.2x_kaffee_creme" })],
-      ["americano_large", intl.formatMessage({ id: "beverages_full.americano_large" })],
-      ["cappuccino", intl.formatMessage({ id: "beverages_full.cappuccino" })],
-      ["latte_macchiato", intl.formatMessage({ id: "beverages_full.latte_macchiato" })],
-      ["hot_water", intl.formatMessage({ id: "beverages_full.hot_water" })]
+    ["2x_espresso", intl.formatMessage({ id: "beverages_full.2x_espresso" })],
+    ["espresso", intl.formatMessage({ id: "beverages_full.espresso" })],
+    ["kaffee_creme", intl.formatMessage({ id: "beverages_full.kaffee_creme" })],
+    ["2x_kaffee_creme", intl.formatMessage({ id: "beverages_full.2x_kaffee_creme" })],
+    ["americano_large", intl.formatMessage({ id: "beverages_full.americano_large" })],
+    ["cappuccino", intl.formatMessage({ id: "beverages_full.cappuccino" })],
+    ["latte_macchiato", intl.formatMessage({ id: "beverages_full.latte_macchiato" })],
+    ["hot_water", intl.formatMessage({ id: "beverages_full.hot_water" })],
   ]);
   const getBeverageFullName = (bev: string): string | undefined => {
     return beverageNames.get(bev);
@@ -53,35 +88,51 @@ const Data: React.FC<DataProps> = ({ deviceId, astarteClient }: DataProps) => {
   };
 
   useEffect(() => {
-    // Get beverage data only once
+    const fetchIntervalTime = 5000; // ms
+
+    // Get data immediately the first time
     getBeverageData();
+
+    // Start fetching every N milliseconds
+    console.log("Start beverage data interval");
+    const beverageInterval = setInterval(() => getBeverageData(), fetchIntervalTime);
+
+    // Clear interval
+    return () => {
+      clearInterval(beverageInterval);
+    };
+    // eslint-disable-next-line
   }, []);
+
+  // useEffect(() => {
+  //   // Get beverage data only once
+  //   getBeverageData();
+  // }, []);
 
   const getBeverageData = async () => {
     let fetchedData: BeverageData[] = [];
     let globals: { beverage_name: string; total_units: number; total_revenues: number }[] = [];
     await Promise.all(
-      beverages.map(async (name, idx) => {
+      beverages.map(async (bev) => {
         const [units, revenues] = await Promise.all([
-          astarteClient.getUnitsData({ deviceId, beverageId: name }),
-          astarteClient.getRevenuesData({ deviceId, beverageId: name }),
+          astarteClient.getUnitsData({ deviceId, beverageId: bev.name }),
+          astarteClient.getRevenuesData({ deviceId, beverageId: bev.name }),
         ]);
-        console.log ("Got beverages data")
-        console.log(units);
-        console.log(revenues);
+        // console.log(units);
+        // console.log(revenues);
 
-        fetchedData.push({ beverage_name: name, color: pickColor(idx), units, revenues });
+        fetchedData.push({ beverage_name: bev.name, color: bev.color, units, revenues });
         globals.push({
-          beverage_name: name,
+          beverage_name: bev.name,
           total_units: units.reduce((acc, unitData) => acc + unitData.value, 0),
           total_revenues: revenues.reduce((acc, revenueData) => acc + revenueData.value, 0),
         });
       })
     );
 
-    // Set overall data
+    // Sort and set overall data
+    fetchedData = sortBy(fetchedData, ["beverage_name"]);
     setData(fetchedData);
-    // console.log(fetchedData);
 
     // Set global cards values
     const totalUnits = globals.reduce((acc, data) => acc + data.total_units, 0);

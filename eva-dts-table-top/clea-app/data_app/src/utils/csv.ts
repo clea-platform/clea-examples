@@ -20,7 +20,7 @@ export type CsvFile = {
  * @returns the CSV string generated
  */
 export function getCsvString(items: any[]): string {
-  console.log("[CreateCsv] Creating new CSV file.");
+  // console.log("[CreateCsv] Creating new CSV file.");
 
   let csv = "";
 

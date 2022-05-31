@@ -21,7 +21,7 @@ const Table: React.FC<TableProps> = ({ tabs, rows }) => {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, idx) => {
+          {rows.sort().map((row, idx) => {
             return (
               <tr key={idx}>
                 {row.map((value, idx) => (

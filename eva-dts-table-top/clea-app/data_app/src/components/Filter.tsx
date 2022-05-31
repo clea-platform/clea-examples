@@ -68,14 +68,14 @@ const Filter: React.FC<FilterProps> = ({ data, setDownloadLink }) => {
 
   const beverages = data.map((bevData) => bevData.beverage_name);
   const beverageNames = new Map([
-      ["2x_espresso", intl.formatMessage({ id: "beverages_full.2x_espresso" })],
-      ["espresso", intl.formatMessage({ id: "beverages_full.espresso" })],
-      ["kaffee_creme", intl.formatMessage({ id: "beverages_full.kaffee_creme" })],
-      ["2x_kaffee_creme", intl.formatMessage({ id: "beverages_full.2x_kaffee_creme" })],
-      ["americano_large", intl.formatMessage({ id: "beverages_full.americano_large" })],
-      ["cappuccino", intl.formatMessage({ id: "beverages_full.cappuccino" })],
-      ["latte_macchiato", intl.formatMessage({ id: "beverages_full.latte_macchiato" })],
-      ["hot_water", intl.formatMessage({ id: "beverages_full.hot_water" })]
+    ["2x_espresso", intl.formatMessage({ id: "beverages_full.2x_espresso" })],
+    ["espresso", intl.formatMessage({ id: "beverages_full.espresso" })],
+    ["kaffee_creme", intl.formatMessage({ id: "beverages_full.kaffee_creme" })],
+    ["2x_kaffee_creme", intl.formatMessage({ id: "beverages_full.2x_kaffee_creme" })],
+    ["americano_large", intl.formatMessage({ id: "beverages_full.americano_large" })],
+    ["cappuccino", intl.formatMessage({ id: "beverages_full.cappuccino" })],
+    ["latte_macchiato", intl.formatMessage({ id: "beverages_full.latte_macchiato" })],
+    ["hot_water", intl.formatMessage({ id: "beverages_full.hot_water" })],
   ]);
   const getBeverageShortName = (bev: string): string | undefined => {
     return beverageNames.get(bev);
@@ -95,10 +95,10 @@ const Filter: React.FC<FilterProps> = ({ data, setDownloadLink }) => {
     updateDatasets(data);
     const csvFile = createCsvFile(data);
     setDownloadLink(csvFile.filename, "data:text/plain;charset=utf-8," + encodeURIComponent(getCsvString(csvFile.data)));
-  }, [currentBeverages, currentDataType, dateRange, dateGranularity]);
+  }, [data, currentBeverages, currentDataType, dateRange, dateGranularity]);
 
   const updateDatasets = (data: BeverageData[]) => {
-    let newDatasets: Dataset[] = [];
+    var newDatasets: Dataset[] = [];
 
     data.forEach((beverageData) => {
       // Filter on beverage name
@@ -167,7 +167,7 @@ const Filter: React.FC<FilterProps> = ({ data, setDownloadLink }) => {
     data.forEach((beverageData) => {
       // Filter on beverage name
       if (!currentBeverages.includes(beverageData.beverage_name)) {
-        // console.log("Filtering out by beverage name", beverageData.beverage);
+        console.log("Filtering out by beverage name", beverageData.beverage_name);
         return;
       }
       // Get data based on type
@@ -245,7 +245,7 @@ const Filter: React.FC<FilterProps> = ({ data, setDownloadLink }) => {
             <FormattedMessage id="all" />
           </label>
 
-          {beverages.map((bev) => {
+          {beverages.sort().map((bev) => {
             return (
               <div key={bev}>
                 <input

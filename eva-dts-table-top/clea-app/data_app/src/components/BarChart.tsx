@@ -21,7 +21,19 @@ type ChartProps = {
 };
 
 const BarChart: React.FC<ChartProps> = ({ datasets, dataType }) => {
-  const labels = datasets[0].points.map((point) => point.label);
+  let unique_labels = new Set<string>();
+  datasets.map((d) => d.points.map((point) => unique_labels.add(point.label)));
+  const labels = Array.from(unique_labels.values()).sort();
+
+  // Fill the holes
+  datasets.map((d) => {
+    labels.map((l, idx) => {
+      if (!d.points[idx] || d.points[idx].label !== l) {
+        d.points.splice(idx, 0, { label: l, value: 0 });
+      }
+    });
+  });
+
   const data = {
     labels,
     datasets: datasets.map((dataset) => {
