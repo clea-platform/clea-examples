@@ -6,6 +6,7 @@
     "types": []
   },
   "files": [
+    "src/main.dev.ts",
     "src/main.ts"
   ],
   "include": [
