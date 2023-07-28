@@ -1,0 +1,5 @@
+node_modules
+dist
+
+translations.generated.json
+src/i18n/langs-compiled
