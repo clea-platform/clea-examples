@@ -1,0 +1,35 @@
+{
+  "all_appliances_selection": {
+    "defaultMessage": "Tutti i dispositivi"
+  },
+  "appliance_connection_status": {
+    "defaultMessage": "Stato Connessione"
+  },
+  "appliance_loading_error": {
+    "defaultMessage": "Impossibile caricare la lista dei dispositivi."
+  },
+  "appliance_name": {
+    "defaultMessage": "Nome Dispositivo"
+  },
+  "appliance_serial": {
+    "defaultMessage": "S/N"
+  },
+  "appliance_status_connected": {
+    "defaultMessage": "Connesso"
+  },
+  "appliance_status_disconnected": {
+    "defaultMessage": "Disconnesso"
+  },
+  "appliance_tags": {
+    "defaultMessage": "Tags"
+  },
+  "application_title": {
+    "defaultMessage": "Cerca dispositivi tramite tag"
+  },
+  "load_more_appliances_button": {
+    "defaultMessage": "Mostra altro"
+  },
+  "try_again_button": {
+    "defaultMessage": "Riprova"
+  }
+}
