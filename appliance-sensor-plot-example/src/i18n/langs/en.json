@@ -1,0 +1,14 @@
+{
+  "loading": {
+    "defaultMessage": "Loading..."
+  },
+  "no_data": {
+    "defaultMessage": "No recent data"
+  },
+  "no_sensors": {
+    "defaultMessage": "No available sensors"
+  },
+  "select_sensor": {
+    "defaultMessage": "Select a sensor"
+  }
+}
