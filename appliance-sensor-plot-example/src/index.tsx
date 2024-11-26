@@ -15,8 +15,9 @@
 */
 
 import React from "react";
+import { createRoot } from "react-dom/client";
+import type { Root } from "react-dom/client";
 import type { ChangeEvent } from "react";
-import ReactDOM from "react-dom";
 import Chart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { IntlProvider, FormattedMessage, useIntl } from "react-intl";
@@ -26,8 +27,8 @@ import AstarteClient from "./AstarteClient";
 // @ts-ignore
 import chartsStyle from "../node_modules/apexcharts/dist/apexcharts.css";
 
-import en from "./lang/en.json";
-import it from "./lang/it.json";
+import en from "./i18n/langs-compiled/en.json";
+import it from "./i18n/langs-compiled/it.json";
 
 const messages = { en, it };
 
@@ -99,10 +100,10 @@ const DataChart = ({ sensorId, data }: DataChartProps) => {
     () => [
       {
         name: sensorId,
-        data: data.map((d) => [new Date(d.timestamp), d.value]),
+        data: data.map((d) => [new Date(d.timestamp).getTime(), d.value]),
       },
     ],
-    [data]
+    [data],
   );
 
   return (
@@ -178,12 +179,16 @@ type Settings = {
   userPreferences: UserPreferences;
 };
 
+let root: Root | null = null;
+
 const AppLifecycle = {
   mount: (container: ShadowRoot, appProps: AppProps, settings: Settings) => {
     const { themeUrl, userPreferences } = settings;
     const { language } = userPreferences;
 
-    ReactDOM.render(
+    root = createRoot(container);
+
+    root.render(
       <>
         <link href={themeUrl} type="text/css" rel="stylesheet" />
         <style>{chartsStyle.toString()}</style>
@@ -195,11 +200,9 @@ const AppLifecycle = {
           <App {...appProps} />
         </IntlProvider>
       </>,
-      container
     );
   },
-  unmount: (container: ShadowRoot) =>
-    ReactDOM.unmountComponentAtNode(container),
+  unmount: (container: ShadowRoot) => root?.unmount(),
 };
 
 export default AppLifecycle;
