@@ -1,0 +1,35 @@
+{
+  "all_appliances_selection": {
+    "defaultMessage": "All appliances"
+  },
+  "appliance_connection_status": {
+    "defaultMessage": "Connection Status"
+  },
+  "appliance_loading_error": {
+    "defaultMessage": "Failed to load the appliance list."
+  },
+  "appliance_name": {
+    "defaultMessage": "Appliance Name"
+  },
+  "appliance_serial": {
+    "defaultMessage": "S/N"
+  },
+  "appliance_status_connected": {
+    "defaultMessage": "Connected"
+  },
+  "appliance_status_disconnected": {
+    "defaultMessage": "Disconnected"
+  },
+  "appliance_tags": {
+    "defaultMessage": "Tags"
+  },
+  "application_title": {
+    "defaultMessage": "Search appliances by tag"
+  },
+  "load_more_appliances_button": {
+    "defaultMessage": "Load more"
+  },
+  "try_again_button": {
+    "defaultMessage": "Try again"
+  }
+}
