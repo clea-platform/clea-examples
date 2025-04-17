@@ -1,7 +1,20 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig, LibraryFormats } from "vite";
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-})
+export default defineConfig(() => {
+  return {
+    define: {
+      "process.env.NODE_ENV": `"${process.env.NODE_ENV}"`,
+    },
+    build: {
+      lib: {
+        entry: "src/index.tsx",
+        formats: ["es"] as LibraryFormats[],
+        fileName: "app",
+      },
+    },
+    preview: {
+      port: 5000,
+      open: "app.mjs",
+    },
+  };
+});
