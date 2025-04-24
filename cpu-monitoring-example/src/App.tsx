@@ -1,5 +1,12 @@
-import { useState } from "react";
-import { Card, Container, Row, Spinner } from "react-bootstrap";
+import { useEffect, useMemo, useState } from "react";
+import { Card, Col, Container, Row } from "react-bootstrap";
+
+import AstarteAPIClient, { DataPoint } from "./api/AstarteAPIClient";
+import { setUpWebSocketConnection } from "./api/setUpWebSocketConnection";
+import { pollData } from "./api/pollData";
+import { interfaces } from "./api/astarteInterfaces";
+import DataChart from "./components/DataChart";
+import Loading from "./components/Loading";
 
 export type AppProps = {
   astarteUrl: URL;
@@ -29,22 +36,56 @@ const App = ({
   appliance,
   viewer,
 }: AppProps) => {
-  const [dataFetching, _] = useState(false);
+  const [dataFetching, setDataFetching] = useState(false);
+  const [cpuTempData, setCpuTempData] = useState<DataPoint[]>([]);
+  const [cpuMetricsData, setCpuMetricsData] = useState<DataPoint[]>([]);
+  const astarteClient = useMemo(() => {
+    return new AstarteAPIClient({ astarteUrl, realm, token });
+  }, [astarteUrl, realm, token]);
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  useEffect(() => {
+    const { polling, websocket } = interfaces(
+      setCpuTempData,
+      setCpuMetricsData,
+    );
+
+    pollData({
+      deviceId,
+      astarteClient,
+      interfaces: polling,
+      since,
+      setLoading: setDataFetching,
+    }).then(() => {
+      setUpWebSocketConnection({
+        deviceId,
+        astarteClient,
+        interfaces: websocket,
+      });
+    });
+  }, [astarteClient, deviceId]);
 
   return (
     <Container fluid>
       <Row className="g-1">
         <Card className="text-center my-3">
           <div className="mx-4">
-            {
-              dataFetching ? (
-                <div className="p-2 p-md-4 text-center">
-                  <Spinner />
-                </div>
-              ) : (
-                "Cpu Monitoring Example App"
-              ) // TODO: implement components
-            }
+            {dataFetching ? (
+              <Loading />
+            ) : (
+              <Row className="justify-content-center">
+                <Col md={6}>
+                  <DataChart data={cpuMetricsData} title={"Cpu Load (%)"} />
+                </Col>
+                <Col md={6}>
+                  <DataChart
+                    data={cpuTempData}
+                    title={"Cpu Temperature (°C)"}
+                  />
+                </Col>
+              </Row>
+            )}
           </div>
         </Card>
       </Row>
