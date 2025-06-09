@@ -43,7 +43,7 @@ const App = ({
     return new AstarteAPIClient({ astarteUrl, realm, token });
   }, [astarteUrl, realm, token]);
 
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const since = new Date(Date.now() - 60 * 60 * 1000);
 
   useEffect(() => {
     const { polling, websocket } = interfaces(

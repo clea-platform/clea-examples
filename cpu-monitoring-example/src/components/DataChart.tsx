@@ -55,7 +55,6 @@ const DataChart = ({ data, title }: DataChartProps) => {
         curve: "straight",
         width: 1,
       },
-      markers: { size: 3 },
       grid: {
         xaxis: {
           lines: {
